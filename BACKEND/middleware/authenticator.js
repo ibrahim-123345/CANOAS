@@ -1,4 +1,4 @@
-authenticateUser: (req, res, next) => {
+ const authenticateUser=(req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
@@ -13,3 +13,7 @@ authenticateUser: (req, res, next) => {
         res.status(401).json({ message: 'Token is not valid' });
     }
 }
+
+
+
+module.exports={authenticateUser}

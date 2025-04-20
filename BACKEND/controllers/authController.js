@@ -38,6 +38,7 @@ module.exports = {
             const { email, password } = req.body;
 
             // Check if user exists
+            await connectToDatabase()
             const user = await User.findOne({ email });
             if (!user) {
                 return res.status(400).json({ message: 'Invalid credentials' });
@@ -61,6 +62,7 @@ module.exports = {
     // Get Current User
     getCurrentUser: async (req, res) => {
         try {
+            await connectToDatabase()
             const user = await User.findById(req.user.id).select('-password');
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
@@ -76,6 +78,7 @@ module.exports = {
     updateUser: async (req, res) => {
         try {
             const updates = req.body;
+            await connectToDatabase()
             const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true }).select('-password');
 
             if (!user) {
@@ -91,6 +94,7 @@ module.exports = {
     // Delete User
     deleteUser: async (req, res) => {
         try {
+            await connectToDatabase()
             const user = await User.findByIdAndDelete(req.user.id);
 
             if (!user) {
@@ -103,6 +107,5 @@ module.exports = {
         }
     },
 
-    // Middleware to Authenticate User
    
 };

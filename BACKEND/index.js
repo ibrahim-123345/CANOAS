@@ -4,7 +4,7 @@ require('dotenv').config();
 const { connectToDatabase } = require('./config/connectionURI');
 
 const { registerUser, loginUser, getCurrentUser } = require('./controllers/authController');
-const { createUser } = require('./models/userModel');
+const {authenticateUser}=require('./middleware/authenticator')
 
 
 // index.js
@@ -23,6 +23,7 @@ app.get('/', (req, res) => {
 
 
 app.post('/register',registerUser);
+app.post('/login',loginUser)
 
 // Start the server
 app.listen(PORT, () => {
