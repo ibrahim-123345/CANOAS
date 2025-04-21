@@ -11,7 +11,7 @@ module.exports = {
     // User Registration
     registerUser: async (req, res) => {
         try {
-            const { username, email, password } = req.body;
+            const { fullName,NIDA, email, password } = req.body;
 
             // Check if user already exists
             await connectToDatabase();
@@ -24,7 +24,7 @@ module.exports = {
             const hashedPassword = await bcrypt.hash(password, 10);
 
             // Create new user
-            createUser(username,email,hashedPassword)
+            createUser(fullName,NIDA,email,hashedPassword)
 
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {
@@ -51,7 +51,7 @@ module.exports = {
             }
 
             // Generate JWT
-            const token = jwt.sign({ id: user._id ,username:user.username}, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+            const token = jwt.sign({ id: user._id ,username:user.username , role:user.role}, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
             res.status(200).json({ message: 'Login successful', token });
         } catch (error) {
