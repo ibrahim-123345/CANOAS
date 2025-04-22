@@ -1,5 +1,6 @@
 const express = require('express');
 require('dotenv').config();
+const cors=require('cors');
 
 const { connectToDatabase } = require('./config/connectionURI');
 
@@ -13,6 +14,7 @@ const {getVotes,castVote,deleteVote}=require("./controllers/vote")
 // index.js
 
 const app = express();
+app.use(cors({origin:"*"}))
 const PORT = process.env.PORT 
 
 // Middleware

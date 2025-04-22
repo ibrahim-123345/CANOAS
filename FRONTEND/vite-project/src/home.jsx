@@ -91,7 +91,7 @@ const HomePage = () => {
           meaningful engagement in democratic processes.
         </p>
 
-        <a href="/login-signup" style={styles.button}>Login</a>
+        <a href="/auth" style={styles.button}>Login</a>
         <button onClick={toggleTheme} style={styles.themeToggle}>
           {darkMode ? "Switch to Light Theme" : "Switch to Dark Theme"}
         </button>

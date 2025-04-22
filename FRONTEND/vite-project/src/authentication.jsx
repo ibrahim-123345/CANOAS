@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -7,21 +8,49 @@ const AuthPage = () => {
   const toggleForm = () => setIsLogin(!isLogin);
   const handleThemeToggle = () => setDarkMode(!darkMode);
 
-  const login = (e) => {
+  const login = async (e) => {
     e.preventDefault();
-    alert("Login submitted");
+    const form = e.target;
+    const payload = {
+      email: form.email.value,
+      password: form.password.value,
+    };
+
+    try {
+      const res = await axios.post("http://localhost:8000/login", payload);
+      const data = res.data;
+      alert("Login successful");
+      // e.g. store token: localStorage.setItem("token", data.token);
+      window.location.href = "/dashboard"; // redirect after login
+    } catch (err) {
+      alert(err.response?.data?.message || err.message);
+    }
   };
 
-  const signup = (e) => {
+  const signup = async (e) => {
     e.preventDefault();
-    const password = e.target.password.value;
-    const confirmPassword = e.target.confirmPassword.value;
-
+    const form = e.target;
+    const password = form.password.value;
+    const confirmPassword = form.confirmPassword.value;
     if (password !== confirmPassword) {
       alert("Passwords don't match!");
       return;
     }
-    alert("Signup successful");
+
+    const payload = {
+      name: form.name.value,
+      email: form.email.value,
+      password,
+    };
+
+    try {
+      const res = await axios.post("http://localhost:7000/auth/signup", payload);
+      const data = res.data;
+      alert("Signup successful");
+      setIsLogin(true);
+    } catch (err) {
+      alert(err.response?.data?.message || err.message);
+    }
   };
 
   const styles = {
@@ -103,8 +132,20 @@ const AuthPage = () => {
           <>
             <h2 style={styles.heading}>Login</h2>
             <form onSubmit={login}>
-              <input type="email" name="email" placeholder="Email" required style={styles.input} />
-              <input type="password" name="password" placeholder="Password" required style={styles.input} />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                required
+                style={styles.input}
+              />
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                required
+                style={styles.input}
+              />
               <button type="submit" style={styles.button}>
                 Login
               </button>
@@ -117,9 +158,27 @@ const AuthPage = () => {
           <>
             <h2 style={styles.heading}>Sign Up</h2>
             <form onSubmit={signup}>
-              <input type="text" name="name" placeholder="Full Name" required style={styles.input} />
-              <input type="email" name="email" placeholder="Email" required style={styles.input} />
-              <input type="password" name="password" placeholder="Password" required style={styles.input} />
+              <input
+                type="text"
+                name="name"
+                placeholder="Full Name"
+                required
+                style={styles.input}
+              />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                required
+                style={styles.input}
+              />
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                required
+                style={styles.input}
+              />
               <input
                 type="password"
                 name="confirmPassword"
