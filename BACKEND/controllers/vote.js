@@ -1,38 +1,81 @@
 const {Vote} = require('../models/vote');
 const {Contestant }= require('../models/contestant');
 const {User }= require('../models/userModel');
+const { connectToDatabase } = require('../config/connectionURI');
+
+
+
+
+const calculateVotePercentage = (voteValue) => {
+  switch(voteValue) {
+    case 'strong_approve': return 100;
+    case 'approve': return 75;
+    case 'neutral': return 50;
+    case 'disapprove': return 25;
+    case 'strong_disapprove': return 0;
+    default: return 0; 
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const castVote = async (req, res) => {
   try {
-    const voterId = req.user._id; 
-    const { contestantId } = req.body;
+    //const voterId = req.user._id; 
+    const { candidateId,voteValue,userVoted} = req.body;
 
-    const contestant = await Contestant.findById(contestantId);
+    const percentageVote = calculateVotePercentage(voteValue);
+
+
+    await connectToDatabase();
+    const contestant = await Contestant.findById(candidateId);
     if (!contestant) {
-      return res.status(404).json({ message: 'Contestant not found' });
+     return res.status(404).json({ message: 'Contestant not found' });
     }
 
+    await connectToDatabase();
     const existingVote = await Vote.findOne({
-      voter: voterId,
-      position: contestant.position,
+      voter: userVoted
+      
+    
     });
+
+    console.log(existingVote);
 
     if (existingVote) {
       return res.status(400).json({ message: 'You already voted for this position' });
     }
 
     const newVote = new Vote({
-      voter: voterId,
-      contestant: contestant._id,
-      position: contestant.position,
+      voter: userVoted,
+      contestant: candidateId,
+      position: "president",
+      voteValue: voteValue,
+      percentage:percentageVote
     });
+
+    console.log(userVoted);
 
     await newVote.save();
 
     contestant.votes.push(newVote._id);
     await contestant.save();
 
-    res.status(201).json({ message: 'Vote cast successfully', vote: newVote });
+    res.status(201).json({ vote: newVote });
   } catch (err) {
     res.status(500).json({ message: 'Failed to cast vote', error: err.message });
   }

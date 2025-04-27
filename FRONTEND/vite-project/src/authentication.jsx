@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import axios from "axios";
 
 const AuthPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [message, setMessage] = useState({ text: "", type: "" }); // type: 'success' or 'error'
+  const [isLoading, setIsLoading] = useState(false);
 
-  const toggleForm = () => setIsLogin(!isLogin);
   const handleThemeToggle = () => setDarkMode(!darkMode);
 
   const login = async (e) => {
@@ -16,185 +16,232 @@ const AuthPage = () => {
       password: form.password.value,
     };
 
+    setIsLoading(true);
+    setMessage({ text: "", type: "" });
+
     try {
       const res = await axios.post("http://localhost:8000/login", payload);
-      const data = res.data;
-      alert("Login successful");
-      // e.g. store token: localStorage.setItem("token", data.token);
-      window.location.href = "/dashboard"; // redirect after login
+      
+      const status = res.status;
+      const responseData = res.data;
+      
+      setMessage({
+        text: `Success (${status}): ${responseData.message || "Login successful"}`,
+        type: "success"
+      });
+      
+    
+      if (responseData.tokenData) {
+        localStorage.setItem("token", responseData.tokenData);
+        console.log(localStorage.getItem("token"));
+      }
+      
+      setTimeout(() => {
+       window.location.href = "/vote";
+      }, 1500);
+      
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
-    }
-  };
-
-  const signup = async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const password = form.password.value;
-    const confirmPassword = form.confirmPassword.value;
-    if (password !== confirmPassword) {
-      alert("Passwords don't match!");
-      return;
-    }
-
-    const payload = {
-      name: form.name.value,
-      email: form.email.value,
-      password,
-    };
-
-    try {
-      const res = await axios.post("http://localhost:7000/auth/signup", payload);
-      const data = res.data;
-      alert("Signup successful");
-      setIsLogin(true);
-    } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      let errorMessage = "An unexpected error occurred";
+      
+      if (err.response) {
+        const status = err.response.status;
+        const data = err.response.data;
+        
+        errorMessage = `Error (${status}): ${data.message || "Authentication failed"}`;
+        
+        if (status === 401) {
+          errorMessage = "Unauthorized: Invalid credentials";
+        } else if (status === 400) {
+          errorMessage = "Bad Request: " + (data.message || "Invalid input");
+        } else if (status === 404) {
+          errorMessage = "Not Found: The requested resource doesn't exist";
+        }
+      } else if (err.request) {
+        errorMessage = "Network Error: No response from server";
+      } else {
+        errorMessage = `Request Error: ${err.message}`;
+      }
+      
+      setMessage({
+        text: errorMessage,
+        type: "error"
+      });
+      
+      console.error("Login error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const styles = {
     container: {
-      fontFamily: "Arial, sans-serif",
-      backgroundColor: darkMode ? "#121212" : "#f4f4f4",
-      color: darkMode ? "#fff" : "#000",
+      fontFamily: "'Inter', sans-serif",
+      backgroundColor: darkMode ? "#121212" : "#f8fafc",
+      color: darkMode ? "#e2e8f0" : "#1e293b",
       minHeight: "100vh",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
       transition: "all 0.3s ease",
+      padding: "20px",
     },
     themeToggle: {
-      position: "absolute",
-      top: 20,
-      right: 20,
-      background: darkMode ? "#444" : "#ddd",
-      padding: "8px 12px",
-      borderRadius: "20px",
-      fontSize: "14px",
+      position: "fixed",
+      top: "20px",
+      right: "20px",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      background: "none",
+      border: "none",
+      color: darkMode ? "#e2e8f0" : "#1e293b",
+      cursor: "pointer",
     },
     formContainer: {
       width: "100%",
       maxWidth: "400px",
-      padding: "30px",
-      backgroundColor: darkMode ? "#1f1f1f" : "#fff",
+      padding: "32px",
+      backgroundColor: darkMode ? "#1e293b" : "#ffffff",
       borderRadius: "12px",
-      boxShadow: darkMode
-        ? "0 0 10px rgba(255, 255, 255, 0.05)"
-        : "0 4px 20px rgba(0, 0, 0, 0.1)",
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+      border: darkMode ? "1px solid #334155" : "1px solid #e2e8f0",
     },
     heading: {
       textAlign: "center",
-      marginBottom: "20px",
+      marginBottom: "24px",
       fontSize: "24px",
+      fontWeight: "600",
+      color: darkMode ? "#f8fafc" : "#1e293b",
     },
     input: {
       width: "100%",
-      padding: "12px",
-      margin: "10px 0",
+      padding: "12px 16px",
+      margin: "8px 0 16px",
       borderRadius: "8px",
-      border: "1px solid #ccc",
-      backgroundColor: darkMode ? "#2b2b2b" : "#fff",
-      color: darkMode ? "#fff" : "#000",
+      border: darkMode ? "1px solid #334155" : "1px solid #cbd5e1",
+      backgroundColor: darkMode ? "#1e293b" : "#ffffff",
+      color: darkMode ? "#f8fafc" : "#1e293b",
+      fontSize: "14px",
+      transition: "all 0.2s ease",
+      outline: "none",
+      ":focus": {
+        borderColor: darkMode ? "#3b82f6" : "#2563eb",
+        boxShadow: `0 0 0 3px ${darkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(37, 99, 235, 0.3)"}`,
+      },
     },
     button: {
       width: "100%",
       padding: "12px",
-      marginTop: "10px",
-      backgroundColor: "#007bff",
-      color: "#fff",
+      marginTop: "8px",
+      backgroundColor: darkMode ? "#3b82f6" : "#2563eb",
+      color: "#ffffff",
       border: "none",
       borderRadius: "8px",
       cursor: "pointer",
-      fontWeight: "bold",
+      fontWeight: "600",
       fontSize: "16px",
+      transition: "all 0.2s ease",
+      ":hover": {
+        backgroundColor: darkMode ? "#2563eb" : "#1d4ed8",
+      },
+      ":disabled": {
+        opacity: "0.7",
+        cursor: "not-allowed",
+      },
     },
-    switchLink: {
+    registerLink: {
       textAlign: "center",
-      marginTop: "15px",
-      color: "#007bff",
-      cursor: "pointer",
+      marginTop: "20px",
       fontSize: "14px",
+      color: darkMode ? "#94a3b8" : "#64748b",
+    },
+    registerAnchor: {
+      color: darkMode ? "#60a5fa" : "#3b82f6",
+      fontWeight: "500",
+      textDecoration: "none",
+      ":hover": {
+        textDecoration: "underline",
+      },
+    },
+    message: {
+      padding: "12px",
+      borderRadius: "8px",
+      marginBottom: "16px",
+      fontSize: "14px",
+      textAlign: "center",
+    },
+    successMessage: {
+      backgroundColor: darkMode ? "rgba(74, 222, 128, 0.1)" : "rgba(74, 222, 128, 0.2)",
+      color: darkMode ? "#4ade80" : "#16a34a",
+      border: `1px solid ${darkMode ? "rgba(74, 222, 128, 0.3)" : "rgba(74, 222, 128, 0.5)"}`,
+    },
+    errorMessage: {
+      backgroundColor: darkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(248, 113, 113, 0.2)",
+      color: darkMode ? "#f87171" : "#dc2626",
+      border: `1px solid ${darkMode ? "rgba(248, 113, 113, 0.3)" : "rgba(248, 113, 113, 0.5)"}`,
     },
   };
 
   return (
     <div style={styles.container}>
-      <div style={styles.themeToggle}>
-        <label>
-          Dark Mode{" "}
-          <input type="checkbox" checked={darkMode} onChange={handleThemeToggle} />
-        </label>
-      </div>
+      <button 
+        style={styles.themeToggle} 
+        onClick={handleThemeToggle}
+        aria-label="Toggle dark mode"
+      >
+        {darkMode ? "☀️ Light" : "🌙 Dark"} Mode
+      </button>
 
       <div style={styles.formContainer}>
-        {isLogin ? (
-          <>
-            <h2 style={styles.heading}>Login</h2>
-            <form onSubmit={login}>
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                required
-                style={styles.input}
-              />
-              <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                required
-                style={styles.input}
-              />
-              <button type="submit" style={styles.button}>
-                Login
-              </button>
-            </form>
-            <div style={styles.switchLink} onClick={toggleForm}>
-              Don't have an account? Sign up
-            </div>
-          </>
-        ) : (
-          <>
-            <h2 style={styles.heading}>Sign Up</h2>
-            <form onSubmit={signup}>
-              <input
-                type="text"
-                name="name"
-                placeholder="Full Name"
-                required
-                style={styles.input}
-              />
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                required
-                style={styles.input}
-              />
-              <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                required
-                style={styles.input}
-              />
-              <input
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirm Password"
-                required
-                style={styles.input}
-              />
-              <button type="submit" style={styles.button}>
-                Sign Up
-              </button>
-            </form>
-            <div style={styles.switchLink} onClick={toggleForm}>
-              Already have an account? Login
-            </div>
-          </>
+        <h2 style={styles.heading}>Login</h2>
+        
+        {/* Status message display */}
+        {message.text && (
+          <div 
+            style={{
+              ...styles.message,
+              ...(message.type === "success" ? styles.successMessage : styles.errorMessage)
+            }}
+          >
+            {message.text}
+          </div>
         )}
+
+        <form onSubmit={login}>
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            required
+            style={styles.input}
+            autoComplete="username"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            required
+            style={styles.input}
+            autoComplete="current-password"
+          />
+          <button 
+            type="submit" 
+            style={styles.button}
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+
+        <div style={styles.registerLink}>
+          Don't have an account?{" "}
+          <a 
+            href="/Registration" 
+            style={styles.registerAnchor}
+          >
+            Register
+          </a>
+        </div>
       </div>
     </div>
   );

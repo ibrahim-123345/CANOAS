@@ -16,7 +16,19 @@ const voteSchema = new mongoose.Schema({
   position: {
     type: String,
     required: true,
-  }
+  },
+
+  voteValue: {
+    type:String,
+    required: true,
+  },
+
+  percentage: {
+    type: Number,
+    required: true,
+  },
+
+  
 }, { timestamps: true });
 
 voteSchema.index({ voter: 1, position: 1 }, { unique: true });
