@@ -22,7 +22,7 @@ const VoterDashboard = () => {
   const [selectedVotes, setSelectedVotes] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [userVoted, setUserVoted] = useState('680b8156532f1c2c95b84635');
+  const [userVoted, setUserVoted] = useState();
   const [isAdmin, setIsAdmin] = useState(true);
   const navigate = useNavigate();
 
@@ -35,12 +35,18 @@ const VoterDashboard = () => {
   ];
 
   useEffect(() => {
-    // Check if user is admin
-    const userData = localStorage.getItem('authData');
-    if (userData) {
+    const authData = JSON.parse(localStorage.getItem('authData'));
+    const { token, user, lastUpdated } = authData;
+    const { userId, username, role, expiresAt } = user;
+
+    setUserVoted(userId);
+
+
+
+    if (authData) {
       try {
-        const parsedData = JSON.parse(userData);
-        setIsAdmin(parsedData.role === admin ? true : false);
+        
+        setIsAdmin(role === "admin" ? true : false);
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
@@ -429,12 +435,14 @@ const VoterDashboard = () => {
               <FaVoteYea size={20} />
               Vote
             </Link>
-            <Link to="/results" style={styles.navLink}>
-              <FaChartBar size={20} />
-              Results
-            </Link>
             {isAdmin && (
-              <Link to="/admin" style={styles.adminLink}>
+              <Link to="/register-contestant" style={styles.navLink}>
+                <FaUserCog size={20} />
+                register contestant
+              </Link>
+            )}
+            {isAdmin && (
+              <Link to="/" style={styles.adminLink}>
                 <FaUserCog size={20} />
                 Admin Dashboard
               </Link>

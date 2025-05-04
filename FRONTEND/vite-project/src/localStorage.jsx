@@ -35,7 +35,6 @@ const extractAndValidateToken = () => {
       lastUpdated: Date.now(),
     }));
 
-    console.log(localStorage.getItem('authData'));
 
     return { token, decoded };
 

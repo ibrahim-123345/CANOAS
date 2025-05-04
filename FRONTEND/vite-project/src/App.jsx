@@ -12,12 +12,14 @@ const isAuthenticated = () => {
 };
 
 const isAdmin = () => {
-  const user = localStorage.getItem('authData');
+  const authData = JSON.parse(localStorage.getItem('authData'));
+  const { token, user, lastUpdated } = authData;
+  const { userId, username, role, expiresAt } = user;
+
   if (!user) return false;
   
   try {
-    const userData = JSON.parse(user);
-    return userData.role === 'admin' ;
+    return role === 'admin' ;
   } catch (e) {
     console.error('Error parsing user data:', e);
     return false;
@@ -31,7 +33,7 @@ function App() {
         {/* Public routes - only accessible when NOT authenticated */}
         <Route 
           path="/auth" 
-          element={!isAuthenticated() ? <AuthPage /> : <Navigate to="/vote" replace />} 
+          element={!isAuthenticated() ? <AuthPage /> : <Navigate to="/" replace />} 
         />
         <Route 
           path="/registration" 
@@ -57,14 +59,15 @@ function App() {
           }
         />
 
-    <Route
-          path="/admin"
-          element={
-            isAuthenticated() && isAdmin() 
-              ? <vote/> 
-              : <Navigate to={isAuthenticated() ? "/admin" : "/auth"} replace />
-          }
-        />
+<Route
+  path="/admin"
+  element={
+    isAuthenticated() && isAdmin() 
+      ? <AdminDashboard /> 
+      : <Navigate to={isAuthenticated() ? "/vote" : "/auth"} replace />
+  }
+/>
+
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
