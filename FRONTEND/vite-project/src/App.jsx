@@ -6,6 +6,7 @@ import ContestantRegistration from './contestantRegistration';
 import RegisterUserForm from './voterRegistration';
 import extractAndValidateToken from './localStorage';
 import AdminDashboard from './adminPage';
+import UserDashboard from './userAccount';
 const isAuthenticated = () => {
   const { token, decoded } = extractAndValidateToken();
   return token && decoded;
@@ -47,6 +48,12 @@ function App() {
         <Route
           path="/vote"
           element={isAuthenticated() ? <VoterDashboard /> : <Navigate to="/auth" replace />}
+        />
+
+
+         <Route
+          path="/userDashboard"
+          element={isAuthenticated() ? <UserDashboard /> : <Navigate to="/auth" replace />}
         />
         
       

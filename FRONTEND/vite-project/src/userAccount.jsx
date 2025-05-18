@@ -17,31 +17,17 @@ import {
   FaExclamationTriangle,
   FaUserCircle,
   FaCheck,
-  FaTimesCircle
+  FaTimesCircle,
+  FaEdit,
+  FaTrash,
+  FaChartLine,
+  FaChartPie
 } from 'react-icons/fa';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
 
-// Mock data for previous accomplishments
-const mockPreviousAccomplishments = {
-  '682883977af41b1fc26e7334': [
-    { promise: "Build new roads in the district", accomplished: true, details: "Completed construction of 3 major roads" },
-    { promise: "Improve school facilities", accomplished: true, details: "Renovated 5 primary schools" },
-    { promise: "Create youth employment program", accomplished: false, details: "Program stalled due to budget constraints" }
-  ],
-  '682883c67af41b1fc26e7337': [
-    { promise: "Reduce water shortages", accomplished: true, details: "Built 2 new water treatment plants" },
-    { promise: "Improve healthcare access", accomplished: true, details: "Constructed 1 new hospital" },
-    { promise: "Lower local taxes", accomplished: false, details: "Taxes remained the same" }
-  ],
-  '65d0f8b9e899d3a9c8f7d125': [
-    { promise: "Increase police presence", accomplished: true, details: "Hired 50 new officers" },
-    { promise: "Modernize public transport", accomplished: false, details: "Project delayed" },
-    { promise: "Support small businesses", accomplished: true, details: "Launched grant program" }
-  ]
-};
-
-const VoterDashboard = () => {
+const UserDashboard = () => {
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem('darkMode');
     return savedMode ? JSON.parse(savedMode) : false;
@@ -53,12 +39,18 @@ const VoterDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [userVoted, setUserVoted] = useState();
-  const [isAdmin, setIsAdmin] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [userVotes, setUserVotes] = useState({});
   const [apiErrors, setApiErrors] = useState({});
-  const [previousAccomplishments, setPreviousAccomplishments] = useState({});
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [analysisData, setAnalysisData] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({
+    name: '',
+    email: '',
+    bio: ''
+  });
   const navigate = useNavigate();
 
   const voteOptions = [
@@ -68,6 +60,8 @@ const VoterDashboard = () => {
     { value: 'disapprove', label: 'Disapprove', color: '#F59E0B' },
     { value: 'strong_disapprove', label: 'Strongly Disapprove', color: '#EF4444' }
   ];
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
@@ -79,13 +73,15 @@ const VoterDashboard = () => {
       try {
         const { user } = authData;
         setUserVoted(user.userId);
-        setIsAdmin(user.role === "admin");
+        setEditedProfile({
+          name: user.userId || '',
+          email: user.email || '',
+          bio: user.bio || ''
+        });
         
-        if (user.role !== "admin") {
-          fetchNotifications();
-          setUserVoted(user.userId);
-          
-        }
+        fetchNotifications();
+        fetchUserVotes(user.userId);
+        //fetchUserProfile(user.userId);
       } catch (e) {
         console.error('Error parsing user data:', e);
         setApiErrors(prev => ({
@@ -97,9 +93,50 @@ const VoterDashboard = () => {
     
     fetchCandidates();
     getVoteResults();
-    // Load mock accomplishments (in real app, this would be an API call)
-    setPreviousAccomplishments(mockPreviousAccomplishments);
   }, []);
+
+  const fetchUserProfile = async (userId) => {
+    try {
+      const response = await axios.get(`http://localhost:8000/users/${userId}`);
+      setEditedProfile({
+        name: response.data.name,
+        email: response.data.email,
+        bio: response.data.bio || ''
+      });
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
+      setApiErrors(prev => ({
+        ...prev,
+        profile: 'Failed to fetch user profile'
+      }));
+    }
+  };
+
+  const updateProfile = async () => {
+    try {
+      const authData = JSON.parse(localStorage.getItem('authData'));
+      const response = await axios.put(`http://localhost:8000/users/${authData.user.userId}`, editedProfile);
+      setEditedProfile(response.data);
+      setEditMode(false);
+      // Update local storage with new data
+      const updatedAuthData = {
+        ...authData,
+        user: {
+          ...authData.user,
+          name: response.data.name,
+          email: response.data.email,
+          bio: response.data.bio
+        }
+      };
+      localStorage.setItem('authData', JSON.stringify(updatedAuthData));
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setApiErrors(prev => ({
+        ...prev,
+        profileUpdate: err.response?.data?.message || 'Failed to update profile'
+      }));
+    }
+  };
 
   const fetchUserVotes = async (userId) => {
     try {
@@ -148,6 +185,19 @@ const VoterDashboard = () => {
       setApiErrors(prev => ({
         ...prev,
         markRead: err.response?.data?.message || 'Failed to mark notification as read'
+      }));
+    }
+  };
+
+  const deleteNotification = async (id) => {
+    try {
+      await axios.delete(`http://localhost:8000/notifications/${id}`);
+      setNotifications(notifications.filter(notification => notification._id !== id));
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+      setApiErrors(prev => ({
+        ...prev,
+        deleteNotification: err.response?.data?.message || 'Failed to delete notification'
       }));
     }
   };
@@ -260,91 +310,71 @@ const VoterDashboard = () => {
     return grouped;
   };
 
-  const showConfirmation = (candidateId, position) => {
-    confirmAlert({
-      title: 'Confirm Assessment',
-      message: 'There is no going back once assessed. Are you sure?',
-      buttons: [
-        {
-          label: 'Yes',
-          onClick: () => submitVote(candidateId, position)
-          
-        },
-        {
-          label: 'No',
-          onClick: () => {}
-        }
-      ],
-      closeOnEscape: true,
-      closeOnClickOutside: true,
-      overlayClassName: darkMode ? 'dark-overlay' : '',
-      customUI: ({ onClose }) => {
-        return (
-          <div style={{
-            backgroundColor: darkMode ? '#1E293B' : 'white',
-            borderRadius: '12px',
-            padding: '2rem',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
-            color: darkMode ? '#F8FAFC' : '#1E293B',
-            width: '400px',
-            maxWidth: '90vw'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <FaExclamationTriangle 
-                size={24} 
-                color="#F59E0B" 
-                style={{ marginRight: '1rem' }} 
-              />
-              <h2 style={{ margin: 0 }}>Confirm Assessment</h2>
-            </div>
-            <p style={{ marginBottom: '2rem', lineHeight: '1.6' }}>
-              There is no going back once assessed. Are you sure you want to proceed?
-            </p>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '1rem'
-            }}>
-              <button
-                onClick={onClose}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  backgroundColor: darkMode ? '#334155' : '#E2E8F0',
-                  color: darkMode ? '#F8FAFC' : '#1E293B',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  submitVote(candidateId, position);
-                  onClose();
-                }}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  backgroundColor: '#3B82F6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        );
-      }
-    });
+  const analyzeVotes = (candidateId = null) => {
+    setShowAnalysis(true);
+    
+    if (candidateId) {
+      // Individual candidate analysis
+      const candidate = candidates.find(c => c._id === candidateId);
+      const votes = voteResults[candidateId]?.votes || [];
+      
+      // Group by vote type
+      const voteCounts = voteOptions.map(option => {
+        const count = votes.filter(v => v.voteValue === option.value).length;
+        return {
+          name: option.label,
+          value: count,
+          color: option.color
+        };
+      });
+
+      setAnalysisData({
+        type: 'individual',
+        candidate: candidate.name,
+        position: candidate.position,
+        totalVotes: votes.length,
+        voteCounts,
+        votes
+      });
+    } else {
+      // Overall analysis
+      const positions = Object.keys(groupCandidatesByPosition());
+      const positionStats = positions.map(position => {
+        const positionCandidates = candidates.filter(c => c.position === position);
+        const positionVotes = positionCandidates.reduce((total, candidate) => {
+          return total + (voteResults[candidate._id]?.votes.length || 0);
+        }, 0);
+        
+        return {
+          position,
+          candidates: positionCandidates.length,
+          votes: positionVotes
+        };
+      });
+
+      // Top candidates by votes
+      const allCandidates = candidates.map(candidate => {
+        const votes = voteResults[candidate._id]?.votes || [];
+        return {
+          id: candidate._id,
+          name: candidate.name,
+          position: candidate.position,
+          votes: votes.length,
+          percentage: getVotePercentage(candidate._id)
+        };
+      }).sort((a, b) => b.votes - a.votes).slice(0, 5);
+
+      setAnalysisData({
+        type: 'overall',
+        totalCandidates: candidates.length,
+        totalVotes: Object.values(voteResults).reduce((total, candidate) => {
+          return total + (candidate.votes?.length || 0);
+        }, 0),
+        positions: positions.length,
+        positionStats,
+        topCandidates: allCandidates
+      });
+    }
   };
 
   const submitVote = async (candidateId, position) => {
@@ -370,16 +400,7 @@ const VoterDashboard = () => {
       }));
       
       getVoteResults();
-      //fetchUserVotes(userVoted);
-
-
-         await axios.post(
-          'http://localhost:8000/notifications',
-          {
-  "message":"new vote to candidate "+candidateId+" for position "+position,
-  "read": false
-})
-
+      fetchUserVotes(userVoted);
       setError(null);
       setApiErrors(prev => ({ ...prev, submitVote: null }));
     } catch (err) {
@@ -397,10 +418,19 @@ const VoterDashboard = () => {
 
   const toggleCandidate = (candidateId) => {
     setExpandedCandidate(expandedCandidate === candidateId ? null : candidateId);
+    setShowAnalysis(false);
   };
 
   const handleVoteChange = (candidateId, value) => {
     setSelectedVotes(prev => ({ ...prev, [candidateId]: value }));
+  };
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setEditedProfile(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const styles = {
@@ -452,21 +482,6 @@ const VoterDashboard = () => {
     },
     activeLink: {
       backgroundColor: 'rgba(255,255,255,0.2)',
-    },
-    adminLink: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem',
-      color: '#f59e0b',
-      textDecoration: 'none',
-      padding: '0.75rem 1rem',
-      marginBottom: '0.5rem',
-      borderRadius: '0.5rem',
-      transition: 'all 0.2s ease',
-      backgroundColor: 'rgba(245, 158, 11, 0.1)',
-      ':hover': {
-        backgroundColor: 'rgba(245, 158, 11, 0.2)',
-      },
     },
     logoutButton: {
       display: 'flex',
@@ -823,9 +838,150 @@ const VoterDashboard = () => {
       color: darkMode ? '#94a3b8' : '#64748b',
       marginTop: '0.25rem',
     },
+    analysisContainer: {
+      backgroundColor: darkMode ? '#1e293b' : 'white',
+      borderRadius: '0.5rem',
+      padding: '1.5rem',
+      marginBottom: '2rem',
+      boxShadow: darkMode ? '0 4px 6px rgba(0,0,0,0.1)' : '0 4px 6px rgba(0,0,0,0.05)',
+    },
+    analysisTitle: {
+      fontSize: '1.5rem',
+      fontWeight: '600',
+      marginBottom: '1rem',
+      color: darkMode ? '#f8fafc' : '#1e293b',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+    },
+    analysisStats: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+      gap: '1rem',
+      marginBottom: '1.5rem',
+    },
+    statCard: {
+      backgroundColor: darkMode ? '#334155' : '#e2e8f0',
+      borderRadius: '0.5rem',
+      padding: '1rem',
+      textAlign: 'center',
+    },
+    statValue: {
+      fontSize: '1.5rem',
+      fontWeight: '700',
+      color: darkMode ? '#f8fafc' : '#1e293b',
+      marginBottom: '0.25rem',
+    },
+    statLabel: {
+      fontSize: '0.875rem',
+      color: darkMode ? '#94a3b8' : '#64748b',
+    },
+    chartContainer: {
+      marginTop: '2rem',
+    },
+    profileContainer: {
+      backgroundColor: darkMode ? '#1e293b' : 'white',
+      borderRadius: '0.5rem',
+      padding: '1.5rem',
+      marginBottom: '2rem',
+      boxShadow: darkMode ? '0 4px 6px rgba(0,0,0,0.1)' : '0 4px 6px rgba(0,0,0,0.05)',
+    },
+    profileHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '1rem',
+    },
+    profileTitle: {
+      fontSize: '1.5rem',
+      fontWeight: '600',
+      color: darkMode ? '#f8fafc' : '#1e293b',
+    },
+    profileForm: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem',
+    },
+    formGroup: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.5rem',
+    },
+    formLabel: {
+      fontWeight: '500',
+      color: darkMode ? '#e2e8f0' : '#1e293b',
+    },
+    formInput: {
+      padding: '0.75rem',
+      borderRadius: '0.5rem',
+      border: darkMode ? '1px solid #334155' : '1px solid #cbd5e1',
+      backgroundColor: darkMode ? '#1e293b' : 'white',
+      color: darkMode ? '#e2e8f0' : '#1e293b',
+      fontSize: '1rem',
+    },
+    formTextarea: {
+      padding: '0.75rem',
+      borderRadius: '0.5rem',
+      border: darkMode ? '1px solid #334155' : '1px solid #cbd5e1',
+      backgroundColor: darkMode ? '#1e293b' : 'white',
+      color: darkMode ? '#e2e8f0' : '#1e293b',
+      fontSize: '1rem',
+      minHeight: '100px',
+      resize: 'vertical',
+    },
+    formActions: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: '1rem',
+      marginTop: '1rem',
+    },
+    actionButton: {
+      padding: '0.75rem 1.5rem',
+      borderRadius: '0.5rem',
+      border: 'none',
+      cursor: 'pointer',
+      fontWeight: '600',
+      transition: 'all 0.2s ease',
+    },
+    saveButton: {
+      backgroundColor: darkMode ? '#3b82f6' : '#2563eb',
+      color: 'white',
+      ':hover': {
+        backgroundColor: darkMode ? '#2563eb' : '#1d4ed8',
+      },
+    },
+    cancelButton: {
+      backgroundColor: darkMode ? '#334155' : '#e2e8f0',
+      color: darkMode ? '#f8fafc' : '#1e293b',
+      ':hover': {
+        backgroundColor: darkMode ? '#475569' : '#cbd5e1',
+      },
+    },
+    editButton: {
+      backgroundColor: darkMode ? '#f59e0b' : '#f59e0b',
+      color: 'white',
+      ':hover': {
+        backgroundColor: darkMode ? '#d97706' : '#d97706',
+      },
+    },
+    notificationActions: {
+      display: 'flex',
+      gap: '0.5rem',
+    },
+    notificationActionButton: {
+      backgroundColor: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      color: darkMode ? '#94a3b8' : '#64748b',
+      ':hover': {
+        color: darkMode ? '#f8fafc' : '#1e293b',
+      },
+    },
   };
 
   const groupedCandidates = groupCandidatesByPosition();
+  const authData = JSON.parse(localStorage.getItem('authData'));
+  const user = authData?.user;
 
   return (
     <div style={styles.container}>
@@ -844,38 +1000,26 @@ const VoterDashboard = () => {
               <FaVoteYea size={20} />
               Assess 
             </Link>
-            {!isAdmin && (
-              <div 
-                style={styles.notificationIcon} 
-                onClick={() => setShowNotifications(!showNotifications)}
-              >
-                <FaBell size={20} />
-                {notifications.filter(n => !n.read).length > 0 && (
-                  <div style={styles.notificationBadge}>
-                    {notifications.filter(n => !n.read).length}
-                  </div>
-                )}
-                Notifications
-              </div>
-            )}
-            {!isAdmin && (
-              <Link to="/userDashboard" style={styles.accountLink}>
-                <FaUserCircle size={20} />
-                My Account
-              </Link>
-            )}
-            {isAdmin && (
-              <Link to="/register-contestant" style={styles.navLink}>
-                <FaUserCog size={20} />
-                Register Contestant
-              </Link>
-            )}
-            {isAdmin && (
-              <Link to="/" style={styles.adminLink}>
-                <FaUserCog size={20} />
-                Admin Dashboard
-              </Link>
-            )}
+            <Link to="/analysis" style={styles.navLink}>
+              <FaChartBar size={20} />
+              Analysis
+            </Link>
+            <div 
+              style={styles.notificationIcon} 
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <FaBell size={20} />
+              {notifications.filter(n => !n.read).length > 0 && (
+                <div style={styles.notificationBadge}>
+                  {notifications.filter(n => !n.read).length}
+                </div>
+              )}
+              Notifications
+            </div>
+            <Link to="/account" style={styles.accountLink}>
+              <FaUserCircle size={20} />
+              My Account
+            </Link>
           </nav>
         </div>
         
@@ -905,7 +1049,23 @@ const VoterDashboard = () => {
 
       <div style={styles.mainContent}>
         <div style={styles.header}>
-          <h1 style={styles.title}>Assessor Dashboard</h1>
+          <h1 style={styles.title}>User Dashboard</h1>
+          <button 
+            onClick={() => setDarkMode(!darkMode)} 
+            style={styles.themeButton}
+          >
+            {darkMode ? (
+              <>
+                <FaSun size={16} />
+                Light Mode
+              </>
+            ) : (
+              <>
+                <FaMoon size={16} />
+                Dark Mode
+              </>
+            )}
+          </button>
         </div>
 
         {/* API Error Display */}
@@ -944,14 +1104,24 @@ const VoterDashboard = () => {
                   <div style={{ ...styles.notificationMessage, fontWeight: notification.read ? 'normal' : '600' }}>
                     {notification.message}
                   </div>
-                  {!notification.read && (
-                    <div 
-                      style={styles.notificationMark}
-                      onClick={() => markAsRead(notification._id)}
+                  <div style={styles.notificationActions}>
+                    {!notification.read && (
+                      <button 
+                        style={styles.notificationActionButton}
+                        onClick={() => markAsRead(notification._id)}
+                        title="Mark as read"
+                      >
+                        <FaCheck size={14} />
+                      </button>
+                    )}
+                    <button 
+                      style={styles.notificationActionButton}
+                      onClick={() => deleteNotification(notification._id)}
+                      title="Delete"
                     >
-                      Mark as read
-                    </div>
-                  )}
+                      <FaTrash size={14} />
+                    </button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -962,194 +1132,165 @@ const VoterDashboard = () => {
           </div>
         )}
 
-        <h2 style={styles.sectionTitle}>Candidates by Position</h2>
-        {loading && candidates.length === 0 && <div style={styles.loading}>Loading candidates...</div>}
-        {error && candidates.length === 0 && <div style={styles.error}>{error}</div>}
-        
-        {!expandedCandidate && Object.entries(groupedCandidates).map(([position, positionCandidates]) => (
-          <div key={position} style={styles.positionSection}>
-            <h3 style={styles.positionTitle}>{position}</h3>
-            <div style={styles.candidatesGrid}>
-              {positionCandidates.map(candidate => (
-                <div 
-                  key={candidate._id} 
-                  style={styles.candidateCard}
-                >
-                  <div 
-                    style={styles.candidateHeader}
-                    onClick={() => toggleCandidate(candidate._id)}
-                  >
-                    <img 
-                      src={candidate.profileImage || 'https://via.placeholder.com/80'}
-                      alt={candidate.name} 
-                      style={styles.candidateImage}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = 'https://via.placeholder.com/80';
-                      }}
-                    />
-                    <div style={styles.candidateInfo}>
-                      <div style={styles.candidateName}>{candidate.name}</div>
-                      <div style={styles.candidateParty}>{candidate.party}</div>
-                      <div style={styles.candidateProgress}>
-                        <div style={styles.progressText}>
-                          Approval: {getVotePercentage(candidate._id)}%
-                        </div>
-                        <div style={styles.progressBarContainer}>
-                          <div style={{ 
-                            ...styles.progressBar, 
-                            width: `${getVotePercentage(candidate._id)}%`,
-                            backgroundColor: getVotePercentage(candidate._id) > 50 ? '#10B981' : 
-                                           getVotePercentage(candidate._id) > 30 ? '#3B82F6' : '#EF4444'
-                          }} />
-                        </div>
-                        <div style={styles.userVoteIndicator}>
-                          <div style={{ 
-                            ...styles.userVoteDot,
-                            backgroundColor: getUserVoteColor(candidate._id)
-                          }} />
-                          <div style={styles.userVoteText}>
-                            Your assessment: {getUserVoteLabel(candidate._id)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div style={styles.expandIcon}>
-                      <FaChevronDown />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {expandedCandidate && candidates.filter(c => c._id === expandedCandidate).map(candidate => (
-          <div key={candidate._id} style={{ marginBottom: '2rem' }}>
-            <div style={styles.candidateCard}>
-              <div 
-                style={styles.candidateHeader}
-                onClick={() => toggleCandidate(candidate._id)}
+        {/* Profile Section 
+       <div style={styles.profileContainer}>
+          <div style={styles.profileHeader}>
+            <h2 style={styles.profileTitle}>My Profile</h2>
+            {!editMode && (
+              <button 
+                style={{ ...styles.actionButton, ...styles.editButton }}
+                onClick={() => setEditMode(true)}
               >
-                <img 
-                  src={candidate.profileImage || 'https://via.placeholder.com/80'}
-                  alt={candidate.name} 
-                  style={styles.candidateImage}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = 'https://via.placeholder.com/80';
-                  }}
+                <FaEdit style={{ marginRight: '0.5rem' }} />
+                Edit Profile
+              </button>
+            )}
+          </div>
+          
+          {editMode ? (
+            <div style={styles.profileForm}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editedProfile.name}
+                  onChange={handleProfileChange}
+                  style={styles.formInput}
                 />
-                <div style={styles.candidateInfo}>
-                  <div style={styles.candidateName}>{candidate.name}</div>
-                  <div style={styles.candidateParty}>{candidate.party}</div>
-                  <div style={styles.candidatePosition}>{candidate.position}</div>
-                  <div style={styles.candidateProgress}>
-                    <div style={styles.progressText}>
-                      Approval: {getVotePercentage(candidate._id)}%
-                    </div>
-                    <div style={styles.progressBarContainer}>
-                      <div style={{ 
-                        ...styles.progressBar, 
-                        width: `${getVotePercentage(candidate._id)}%`,
-                        backgroundColor: getVotePercentage(candidate._id) > 50 ? '#10B981' : 
-                                       getVotePercentage(candidate._id) > 30 ? '#3B82F6' : '#EF4444'
-                      }} />
-                    </div>
-                    <div style={styles.userVoteIndicator}>
-                      <div style={{ 
-                        ...styles.userVoteDot,
-                        backgroundColor: getUserVoteColor(candidate._id)
-                      }} />
-                      <div style={styles.userVoteText}>
-                        Your assessment: {getUserVoteLabel(candidate._id)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div style={styles.expandIcon}>
-                  <FaChevronUp />
-                </div>
               </div>
-
-              <div style={styles.candidateDetails}>
-                <p style={styles.candidateBio}>{candidate.bio || 'No biography available'}</p>
-                
-                {candidate.promises && candidate.promises.length > 0 && (
-                  <>
-                    <div style={styles.promisesTitle}>Current Promises:</div>
-                    <ul style={styles.promisesList}>
-                      {candidate.promises.map((promise, i) => (
-                        <li key={i} style={styles.promiseItem}>{promise}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-
-                {previousAccomplishments[candidate._id] && previousAccomplishments[candidate._id].length > 0 && (
-                  <>
-                    <div style={styles.promisesTitle}>Previous Performance:</div>
-                    <div>
-                      {previousAccomplishments[candidate._id].map((item, i) => (
-                        <div key={i} style={styles.accomplishmentItem}>
-                          <div style={styles.accomplishmentIcon}>
-                            {item.accomplished ? (
-                              <FaCheck color="#10B981" size={16} />
-                            ) : (
-                              <FaTimesCircle color="#EF4444" size={16} />
-                            )}
-                          </div>
-                          <div style={styles.accomplishmentContent}>
-                            <div style={styles.accomplishmentPromise}>{item.promise}</div>
-                            <div style={styles.accomplishmentDetails}>{item.details}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                <div style={styles.voteControls}>
-                  {userVotes[candidate._id] ? (
-                    <div style={{ 
-                      padding: '0.75rem',
-                      borderRadius: '0.5rem',
-                      backgroundColor: darkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.1)',
-                      color: darkMode ? '#93C5FD' : '#1E40AF',
-                      textAlign: 'center',
-                      fontWeight: '500'
-                    }}>
-                      You've already assessed this candidate as: {getUserVoteLabel(candidate._id)}
-                    </div>
-                  ) : (
-                    <>
-                      <select
-                        value={selectedVotes[candidate._id] || ''}
-                        onChange={(e) => handleVoteChange(candidate._id, e.target.value)}
-                        style={styles.voteSelect}
-                      >
-                        <option value="">Select your assessment</option>
-                        {voteOptions.map(option => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => showConfirmation(candidate._id, candidate.position)}
-                        style={styles.submitButton}
-                        disabled={loading || !selectedVotes[candidate._id]}
-                      >
-                        {loading ? 'Submitting...' : 'Submit Assessment'}
-                      </button>
-                    </>
-                  )}
-                </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editedProfile.email}
+                  onChange={handleProfileChange}
+                  style={styles.formInput}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Bio</label>
+                <textarea
+                  name="bio"
+                  value={editedProfile.bio}
+                  onChange={handleProfileChange}
+                  style={styles.formTextarea}
+                />
+              </div>
+              <div style={styles.formActions}>
+                <button 
+                  style={{ ...styles.actionButton, ...styles.cancelButton }}
+                  onClick={() => setEditMode(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  style={{ ...styles.actionButton, ...styles.saveButton }}
+                  onClick={updateProfile}
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
+          ) : (
+            <div>
+              <p><strong>Name:</strong> {user?.name}</p>
+              <p><strong>Email:</strong> {user?.email}</p>
+              <p><strong>Bio:</strong> {user?.bio || 'No bio provided'}</p>
+            </div>
+          )}
+        </div>*/}
+
+        {/* Analysis Section */}
+        <div style={styles.analysisContainer}>
+          <h2 style={styles.analysisTitle}>
+            <FaChartBar />
+            Voting Analysis
+          </h2>
+          
+          <div style={styles.analysisStats}>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>{candidates.length}</div>
+              <div style={styles.statLabel}>Total Candidates</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>
+                {Object.values(voteResults).reduce((total, candidate) => {
+                  return total + (candidate.votes?.length || 0);
+                }, 0)}
+              </div>
+              <div style={styles.statLabel}>Total Votes Cast</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>
+                {Object.keys(groupCandidatesByPosition()).length}
+              </div>
+              <div style={styles.statLabel}>Positions</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statValue}>
+                {Object.keys(userVotes).length}
+              </div>
+              <div style={styles.statLabel}>Your Assessments</div>
+            </div>
           </div>
-        ))}
+
+          <div style={styles.chartContainer}>
+            <h3>Top Candidates by Votes</h3>
+            <BarChart
+              width={800}
+              height={400}
+              data={candidates.map(candidate => ({
+                name: candidate.name,
+                votes: voteResults[candidate._id]?.votes.length || 0,
+                percentage: getVotePercentage(candidate._id)
+              })).sort((a, b) => b.votes - a.votes).slice(0, 5)}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="votes" fill="#8884d8" name="Total Votes" />
+              <Bar dataKey="percentage" fill="#82ca9d" name="Approval %" />
+            </BarChart>
+          </div>
+
+          <div style={styles.chartContainer}>
+            <h3>Vote Distribution by Position</h3>
+            <PieChart width={800} height={400}>
+              <Pie
+                data={Object.entries(groupCandidatesByPosition()).map(([position, candidates]) => ({
+                  name: position,
+                  value: candidates.reduce((total, candidate) => {
+                    return total + (voteResults[candidate._id]?.votes.length || 0);
+                  }, 0)
+                }))}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={150}
+                fill="#8884d8"
+                dataKey="value"
+                nameKey="name"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {Object.entries(groupCandidatesByPosition()).map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </div>
+        </div>
+
+     
       </div>
     </div>
   );
 };
 
-export default VoterDashboard;
+export default UserDashboard;

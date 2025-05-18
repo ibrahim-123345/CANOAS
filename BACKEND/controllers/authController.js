@@ -4,8 +4,8 @@ const {User,createUser } = require('../models/userModel'); // Adjust the path as
 const { connectToDatabase } = require('../config/connectionURI');
 
 // Environment variables
-const JWT_SECRET = process.env.JWT_SECRET 
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret"; // Replace with your secret key
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1w'; // Default expiration time
 
 module.exports = {
     // User Registration
@@ -36,6 +36,7 @@ module.exports = {
     loginUser: async (req, res) => {
         try {
             const { email, password } = req.body;
+            //console.log(email)
 
             // Check if user exists
             await connectToDatabase()
@@ -46,6 +47,8 @@ module.exports = {
 
             // Compare passwords
             const isMatch = await bcrypt.compare(password, user.password);
+                        console.log(isMatch)
+
             if (!isMatch) {
                 return res.status(400).json({ message: 'Invalid credentials' });
             }
@@ -55,6 +58,8 @@ module.exports = {
 
             res.status(200).json({tokenData:token });
         } catch (error) {
+                        console.log(error)
+
             res.status(500).json({ message: 'Server error', error: error.message });
         }
     },

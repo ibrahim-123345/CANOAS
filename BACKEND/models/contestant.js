@@ -6,29 +6,32 @@ const contestantSchema = new mongoose.Schema({
     required: true,
   },
 
-  party:{
+  party: {
     type: String,
     required: true,
   },
+
   bio: {
     type: String,
     required: true,
   },
+
   nidaNumber: {
     type: String,
-    required: false,
-    unique: true,
-  },
+    unique: true, 
+    sparse: true
+  }, 
+
   promises: {
     type: [String],
-    default: "", 
+    default: [], 
   },
 
   profileImage: {
     type: String,
-    default: null, 
+    default: null,
   },
-  
+
   votes: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -36,12 +39,12 @@ const contestantSchema = new mongoose.Schema({
     },
   ],
 
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
+  position: {
+    type: String,
+    required: true,
+  }
+
 }, { timestamps: true });
 
-const Contestant= mongoose.models.Contestant || mongoose.model("Contestant", contestantSchema);
-
-module.exports = { Contestant };
+const Contestant = mongoose.models.Contestant || mongoose.model("Contestant", contestantSchema);
+module.exports = {Contestant};

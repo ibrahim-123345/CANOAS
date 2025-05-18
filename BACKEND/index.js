@@ -9,7 +9,8 @@ const { registerUser, loginUser, getCurrentUser } = require('./controllers/authC
 const {authenticateUser}=require('./middleware/authenticator')
 const { getAllContestants, createContestant, getContestantById, updateContestant } = require('./controllers/constestant');
 const {files}=require('./config/imageHandler');
-const {getVotes,castVote,deleteVote}=require("./controllers/vote")
+const {getVotes,castVote,deleteVote,getVotePercentagesByCandidateId}=require("./controllers/vote")
+const {getNotifications,createNotification,markAsRead,deleteNotification}  = require('./controllers/notification');
 
 
 // index.js
@@ -20,7 +21,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(cors({origin:"*"}))
 
-const PORT = process.env.PORT 
+const PORT = process.env.PORT || 8000
 
 // Middleware
 app.use(express.json());
@@ -47,9 +48,15 @@ app.put('/contestants/:id', updateContestant);
 app.post('/vote', castVote);
 app.get('/vote', getVotes);
 app.delete('/vote/:id', deleteVote);
+app.post('/getVotePercentage', getVotePercentagesByCandidateId);
 
 
 
+//notification
+app.get('/notifications', getNotifications);
+app.post('/notifications', createNotification);
+app.delete('/notifications/:id', deleteNotification);
+app.patch('/notifications/:id/read', markAsRead);
 
 
 
