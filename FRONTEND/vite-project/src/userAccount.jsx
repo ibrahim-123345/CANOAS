@@ -1259,6 +1259,8 @@ const UserDashboard = () => {
           </div>
 
           <div style={styles.chartContainer}>
+
+            {  /*    
             <h3>Vote Distribution by Position</h3>
             <PieChart width={800} height={400}>
               <Pie
@@ -1283,7 +1285,7 @@ const UserDashboard = () => {
               </Pie>
               <Tooltip />
               <Legend />
-            </PieChart>
+            </PieChart> */}
           </div>
         </div>
 
