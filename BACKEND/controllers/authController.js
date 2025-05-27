@@ -54,7 +54,7 @@ module.exports = {
             }
 
             // Generate JWT
-            const token = jwt.sign({ id: user._id , user : user.fullName , role:user.role}, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+            const token = jwt.sign({ id: user._id , user : user.fullName , role:user.role,email:user.email}, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
             res.status(200).json({tokenData:token });
         } catch (error) {

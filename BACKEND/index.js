@@ -9,8 +9,9 @@ const { registerUser, loginUser, getCurrentUser } = require('./controllers/authC
 const {authenticateUser}=require('./middleware/authenticator')
 const { getAllContestants, createContestant, getContestantById, updateContestant } = require('./controllers/constestant');
 const {files}=require('./config/imageHandler');
-const {getVotes,castVote,deleteVote,getVotePercentagesByCandidateId}=require("./controllers/vote")
+const {getVotes,castVote,deleteVote,getVotePercentagesByCandidateId, getAverageVoteByUserId,getAverageVoteByCandidateId, getUserAverageVoteOnPosition,getUserVote}=require("./controllers/vote")
 const {getNotifications,createNotification,markAsRead,deleteNotification}  = require('./controllers/notification');
+const { getAllcomments,getCommentsForContestant,createComment } = require('./controllers/comments');
 
 
 // index.js
@@ -49,6 +50,10 @@ app.post('/vote', castVote);
 app.get('/vote', getVotes);
 app.delete('/vote/:id', deleteVote);
 app.post('/getVotePercentage', getVotePercentagesByCandidateId);
+app.post('/user-average', getUserAverageVoteOnPosition);
+app.get('/avaragebyCandidate/:candidateId',getAverageVoteByCandidateId);
+app.post('/getUserVote', getUserVote);
+
 
 
 
@@ -58,6 +63,14 @@ app.post('/notifications', createNotification);
 app.delete('/notifications/:id', deleteNotification);
 app.patch('/notifications/:id/read', markAsRead);
 
+
+
+
+// Comments routes
+
+app.post("/comment", createComment);
+
+app.get("/:contestantId", getCommentsForContestant);
 
 
 
