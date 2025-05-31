@@ -5,192 +5,124 @@ import {
   FaHome, 
   FaVoteYea, 
   FaChartBar, 
-  FaSun, 
-  FaMoon, 
+  FaUserCog,
   FaSignOutAlt,
-  FaBell,
-  FaTimes,
-  FaExclamationTriangle,
   FaUserCircle,
+  FaBell,
+  FaChevronDown,
+  FaChevronUp,
   FaCheck,
-  FaTrash,
-  FaEdit
+  FaTimes,
+  FaChartLine
 } from 'react-icons/fa';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
-import { confirmAlert } from 'react-confirm-alert';
-import 'react-confirm-alert/src/react-confirm-alert.css';
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const UserDashboard = () => {
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem('darkMode');
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
-  const [voteResults, setVoteResults] = useState({});
   const [candidates, setCandidates] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [voteResults, setVoteResults] = useState({});
+  const [userVotes, setUserVotes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userVoted, setUserVoted] = useState();
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [userVotes, setUserVotes] = useState({});
-  const [apiErrors, setApiErrors] = useState({});
-  const [editMode, setEditMode] = useState(false);
-  const [editedProfile, setEditedProfile] = useState({
-    name: '',
-    email: '',
-    role: ''
-  });
+  const [userData, setUserData] = useState(null);
+  const [expandedPosition, setExpandedPosition] = useState(null);
   const navigate = useNavigate();
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
+  const voteOptions = [
+    { value: 'strong_approve', label: 'Strongly Approve', color: '#10B981' },
+    { value: 'approve', label: 'Approve', color: '#34D399' },
+    { value: 'neutral', label: 'Neutral', color: '#6B7280' },
+    { value: 'disapprove', label: 'Disapprove', color: '#F59E0B' },
+    { value: 'strong_disapprove', label: 'Strongly Disapprove', color: '#EF4444' }
+  ];
 
   useEffect(() => {
     const authData = JSON.parse(localStorage.getItem('authData'));
     if (authData) {
-      try {
-        const { user } = authData;
-        setUserVoted(user.userId);
-        setEditedProfile({
-          name: user.username || '',
-          email: user.email || '',
-          role: user.role || ''
-        });
-        fetchNotifications();
-      } catch (e) {
-        console.error('Error parsing user data:', e);
-        setApiErrors(prev => ({
-          ...prev,
-          userData: 'Failed to parse user data from localStorage'
-        }));
-      }
+      setUserData(authData.user);
     }
-    
     fetchCandidates();
-    getVoteResults();
+    fetchAllVotes();
   }, []);
 
-  const fetchNotifications = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/notifications');
-      setNotifications(response.data);
-      setApiErrors(prev => ({ ...prev, notifications: null }));
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-      setApiErrors(prev => ({
-        ...prev,
-        notifications: err.response?.data?.message || 'Failed to load notifications'
-      }));
-    }
-  };
-
-  const markAsRead = async (id) => {
-    try {
-      await axios.patch(`http://localhost:8000/notifications/${id}/read`);
-      setNotifications(notifications.map(notification => 
-        notification._id === id ? { ...notification, read: true } : notification
-      ));
-      setApiErrors(prev => ({ ...prev, markRead: null }));
-    } catch (err) {
-      console.error('Error marking notification as read:', err);
-      setApiErrors(prev => ({
-        ...prev,
-        markRead: err.response?.data?.message || 'Failed to mark notification as read'
-      }));
-    }
-  };
-
-  const deleteNotification = async (id) => {
-    try {
-      await axios.delete(`http://localhost:8000/notifications/${id}`);
-      setNotifications(notifications.filter(notification => notification._id !== id));
-    } catch (err) {
-      console.error('Error deleting notification:', err);
-      setApiErrors(prev => ({
-        ...prev,
-        deleteNotification: err.response?.data?.message || 'Failed to delete notification'
-      }));
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('authData');
-    window.location.reload();
-    navigate('/');
-  };
-
-  const fetchCandidates = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get('http://localhost:8000/contestants');
-      setCandidates(response.data);
-      setApiErrors(prev => ({ ...prev, candidates: null }));
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Failed to fetch candidates. Please try again later.';
-      setError(errorMsg);
-      setApiErrors(prev => ({
-        ...prev,
-        candidates: errorMsg
-      }));
-      console.error('Error fetching candidates:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getVoteResults = async () => {
-    setLoading(true);
-    setError(null);
-
+  const fetchAllVotes = async () => {
     try {
       const response = await axios.get('http://localhost:8000/vote');
       const results = {};
-
+      const userVotesList = [];
+      
       response.data.forEach(vote => {
         if (!vote.contestant) return;
-
         const candidateId = vote.contestant._id;
-
         
         if (!results[candidateId]) {
           results[candidateId] = {
             candidateName: vote.contestant.name || "Unknown",
-            position: vote.contestant.position || "Unknown",
-            votes: []
+            votes: [],
+            totalPercentage: 0,
+            voteCount: 0,
+            position: vote.position,
+            voteDistribution: {
+              strong_approve: 0,
+              approve: 0,
+              neutral: 0,
+              disapprove: 0,
+              strong_disapprove: 0
+            }
           };
         }
 
         results[candidateId].votes.push({
+          userId: vote.voter._id,
           percentage: vote.percentage,
-          voteValue: vote.voteValue,
-          voterId: vote.voter._id,
-          voterName: vote.voter.email || "Unknown"
+          voteValue: vote.voteValue
         });
+        
+        results[candidateId].totalPercentage += parseFloat(vote.percentage || 0);
+        results[candidateId].voteCount += 1;
+        
+        if (vote.voteValue && results[candidateId].voteDistribution[vote.voteValue] !== undefined) {
+          results[candidateId].voteDistribution[vote.voteValue] += 1;
+        }
+
+        if (vote.voter._id === userData?.userId) {
+          userVotesList.push({
+            candidateId,
+            candidateName: vote.contestant.name,
+            position: vote.position,
+            voteValue: vote.voteValue,
+            percentage: vote.percentage
+          });
+        }
       });
-
-
+      
+      Object.keys(results).forEach(candidateId => {
+        results[candidateId].averageApproval = 
+          results[candidateId].voteCount > 0 
+            ? (results[candidateId].totalPercentage / results[candidateId].voteCount).toFixed(1)
+            : 0;
+      });
+      
       setVoteResults(results);
-      setApiErrors(prev => ({ ...prev, voteResults: null }));
-
+      setUserVotes(userVotesList);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Could not load vote results. Please try again later.';
-      setError(errorMsg);
-      setApiErrors(prev => ({ ...prev, voteResults: errorMsg }));
-      console.error('Error fetching results:', err);
+      console.error('Error fetching all votes:', err);
+      setError('Failed to load voting data');
     } finally {
       setLoading(false);
     }
   };
 
-  const getVotePercentage = (candidateId) => {
-    if (!voteResults[candidateId] || voteResults[candidateId].votes.length === 0) return 0;
-    const latestVote = voteResults[candidateId].votes[voteResults[candidateId].votes.length - 1];
-    return parseFloat(latestVote.percentage || 0);
+  const fetchCandidates = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('http://localhost:8000/contestants');
+      setCandidates(response.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch candidates');
+    }
   };
 
   const groupCandidatesByPosition = () => {
@@ -204,501 +136,650 @@ const UserDashboard = () => {
     return grouped;
   };
 
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setEditedProfile(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const getVoteColor = (percentage) => {
+    if (percentage >= 80) return '#10B981';
+    if (percentage >= 60) return '#34D399';
+    if (percentage >= 40) return '#6B7280';
+    if (percentage >= 20) return '#F59E0B';
+    return '#EF4444';
+  };
+
+  const getVoteLabel = (voteValue) => {
+    const option = voteOptions.find(opt => opt.value === voteValue);
+    return option ? option.label : '';
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('authData');
+    navigate('/login');
+  };
+
+  const togglePosition = (position) => {
+    setExpandedPosition(expandedPosition === position ? null : position);
   };
 
   const groupedCandidates = groupCandidatesByPosition();
-  const authData = JSON.parse(localStorage.getItem('authData'));
-  const user = authData?.user;
+
+  const prepareUserChartData = (position) => {
+    const positionVotes = userVotes.filter(vote => vote.position === position);
+    if (positionVotes.length === 0) return null;
+
+    const labels = positionVotes.map(vote => vote.candidateName);
+    const data = positionVotes.map(vote => parseFloat(vote.percentage || 0));
+    const backgroundColors = positionVotes.map(vote => getVoteColor(parseFloat(vote.percentage || 0)));
+
+    return {
+      labels,
+      datasets: [{
+        label: 'Your Approval Rating (%)',
+        data,
+        backgroundColor: backgroundColors,
+        borderColor: backgroundColors,
+        borderWidth: 1
+      }]
+    };
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const vote = userVotes.find(v => v.candidateName === context.label);
+            return `${context.parsed.y}% (${getVoteLabel(vote?.voteValue)})`;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        title: {
+          display: true,
+          text: 'Approval Rating (%)'
+        }
+      }
+    }
+  };
+
+  const getTopPerformers = () => {
+    const topPerformers = [];
+    Object.entries(groupedCandidates).forEach(([position, positionCandidates]) => {
+      const candidatesWithStats = positionCandidates.map(candidate => ({
+        ...candidate,
+        averageApproval: parseFloat(voteResults[candidate._id]?.averageApproval || 0),
+        voteCount: voteResults[candidate._id]?.voteCount || 0
+      }));
+
+      const topCandidate = candidatesWithStats.sort((a, b) => b.averageApproval - a.averageApproval)[0];
+      if (topCandidate) {
+        topPerformers.push({
+          position,
+          name: topCandidate.name,
+          party: topCandidate.party,
+          approval: topCandidate.averageApproval,
+          votes: topCandidate.voteCount
+        });
+      }
+    });
+
+    return topPerformers;
+  };
+
+  const getUserVoteForCandidate = (candidateId) => {
+    return userVotes.find(vote => vote.candidateId === candidateId);
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard">
+        <div className="sidebar">
+          {/* Sidebar content */}
+        </div>
+        <div className="main-content">
+          <div className="loading">Loading your data...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard">
+        <div className="sidebar">
+          {/* Sidebar content */}
+        </div>
+        <div className="main-content">
+          <div className="error">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      backgroundColor: darkMode ? '#1a1b1e' : '#f8fafc',
-      color: darkMode ? '#e2e8f0' : '#1e293b',
-      fontFamily: "'Inter', sans-serif",
-    }}>
-      <div style={{
-        width: '250px',
-        backgroundColor: darkMode ? '#0f172a' : '#1e40af',
-        color: 'white',
-        padding: '20px',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}>
-        <div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '30px' }}>
-            CANOAS
-          </div>
-          <nav style={{ flex: 1 }}>
-            <Link to="/" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              color: 'white',
-              textDecoration: 'none',
-              padding: '10px',
-              marginBottom: '5px',
-              borderRadius: '5px',
-            }}>
-              <FaHome size={20} />
-              Home
+    <div className="dashboard">
+      <div className="sidebar">
+        <div className="sidebar-content">
+          <div className="logo">CANOAS</div>
+          <nav>
+            <Link to="/" className="nav-link">
+              <FaHome className="nav-icon" /> 
+              <span>Home</span>
             </Link>
-            <Link to="/vote" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              color: 'white',
-              textDecoration: 'none',
-              padding: '10px',
-              marginBottom: '5px',
-              borderRadius: '5px',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-            }}>
-              <FaVoteYea size={20} />
-              Assess
+            <Link to="/vote" className="nav-link">
+              <FaVoteYea className="nav-icon" /> 
+              <span>Assess</span>
             </Link>
-            <div 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: 'white',
-                padding: '10px',
-                marginBottom: '5px',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                position: 'relative',
-              }}
-              onClick={() => setShowNotifications(!showNotifications)}
-            >
-              <FaBell size={20} />
-              {notifications.filter(n => !n.read).length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '5px',
-                  right: '5px',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                }}>
-                  {notifications.filter(n => !n.read).length}
-                </div>
-              )}
-              Notifications
-            </div>
+            <Link to="/generalAnalysis" className="nav-link">
+              <FaChartBar className="nav-icon" /> 
+              <span>General Analysis</span>
+            </Link>
+            <Link to="/userDashboard" className="nav-link active">
+              <FaUserCircle className="nav-icon" /> 
+              <span>My Account</span>
+            </Link>
           </nav>
-        </div>
-        
-        <div>
-          <button 
-            onClick={() => setDarkMode(!darkMode)} 
-            style={{
-              padding: '10px',
-              backgroundColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              marginBottom: '10px',
-            }}
-          >
-            {darkMode ? <FaSun size={16} /> : <FaMoon size={16} />}
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
-          </button>
-          <button onClick={handleLogout} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: 'white',
-            padding: '10px',
-            width: '100%',
-            borderRadius: '5px',
-            border: 'none',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            cursor: 'pointer',
-          }}>
-            <FaSignOutAlt size={20} />
-            Logout
+          <button onClick={handleLogout} className="logout-btn">
+            <FaSignOutAlt className="logout-icon" /> 
+            <span>Logout</span>
           </button>
         </div>
       </div>
 
-      <div style={{
-        flexGrow: 1,
-        padding: '20px',
-        maxWidth: '1200px',
-        margin: '0 auto',
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px',
-        }}>
-          <h1 style={{
-            fontSize: '2rem',
-            fontWeight: '700',
-            color: darkMode ? '#f8fafc' : '#1e293b',
-          }}>User Dashboard</h1>
-          <button 
-            onClick={() => setDarkMode(!darkMode)} 
-            style={{
-              padding: '10px',
-              backgroundColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            {darkMode ? <FaSun size={16} /> : <FaMoon size={16} />}
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
-          </button>
-        </div>
-
-        {Object.keys(apiErrors).filter(key => apiErrors[key]).length > 0 && (
-          <div style={{
-            backgroundColor: darkMode ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)',
-            borderLeft: '4px solid #ef4444',
-            padding: '15px',
-            margin: '15px 0',
-            borderRadius: '0 5px 5px 0',
-          }}>
-            <h3 style={{
-              fontWeight: '600',
-              color: '#ef4444',
-              marginBottom: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}>
-              <FaExclamationTriangle />
-              Warning!!!
-            </h3>
-            {Object.entries(apiErrors)
-              .filter(([_, value]) => value)
-              .map(([key, value]) => (
-                <div key={key}>
-                  <p style={{
-                    color: darkMode ? '#fca5a5' : '#dc2626',
-                    fontSize: '0.875rem',
-                  }}>
-                    <strong>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong> {value}
-                  </p>
-                </div>
-              ))}
-          </div>
-        )}
-
-        {showNotifications && (
-          <div style={{
-            position: 'fixed',
-            top: '0',
-            right: '0',
-            width: '350px',
-            height: '100vh',
-            backgroundColor: darkMode ? '#1e293b' : 'white',
-            boxShadow: darkMode ? '-5px 0 15px rgba(0,0,0,0.3)' : '-5px 0 15px rgba(0,0,0,0.1)',
-            zIndex: 1000,
-            padding: '20px',
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '20px',
-              paddingBottom: '10px',
-              borderBottom: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
-            }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: '600' }}>Notifications</div>
-              <div 
-                style={{ cursor: 'pointer' }}
-                onClick={() => setShowNotifications(false)}
-              >
-                <FaTimes size={20} />
+      <div className="main-content">
+        <div className="content-header">
+          <h1>My Account</h1>
+          
+          <div className="user-profile">
+            <div className="profile-header">
+              <img 
+                src={userData?.profileImage || 'https://via.placeholder.com/100?text=USER'} 
+                alt="User profile"
+                className="profile-image"
+              />
+              <div className="profile-info">
+                <h2>{userData?.name || 'User'}</h2>
+                <p className="email">{userData?.email}</p>
+                <p className="role">Voter since {new Date(userData?.createdAt).getFullYear()}</p>
               </div>
             </div>
-            {notifications.length > 0 ? (
-              notifications.map(notification => (
-                <div key={notification._id} style={{
-                  padding: '10px 0',
-                  borderBottom: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <div style={{ 
-                    fontWeight: notification.read ? 'normal' : '600',
-                    color: darkMode ? '#e2e8f0' : '#1e293b',
-                  }}>
-                    {notification.message}
-                  </div>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    {!notification.read && (
-                      <button 
-                        style={{ 
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: darkMode ? '#94a3b8' : '#64748b',
-                        }}
-                        onClick={() => markAsRead(notification._id)}
-                        title="Mark as read"
-                      >
-                        <FaCheck size={14} />
-                      </button>
-                    )}
-                    <button 
-                      style={{ 
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: darkMode ? '#94a3b8' : '#64748b',
-                      }}
-                      onClick={() => deleteNotification(notification._id)}
-                      title="Delete"
-                    >
-                      <FaTrash size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div style={{ 
-                color: darkMode ? '#94a3b8' : '#64748b', 
-                textAlign: 'center', 
-                padding: '15px' 
-              }}>
-                No notifications
-              </div>
-            )}
-          </div>
-        )}
-
-        <div style={{
-          backgroundColor: darkMode ? '#1e293b' : 'white',
-          borderRadius: '5px',
-          padding: '20px',
-          marginBottom: '20px',
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '15px',
-          }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>My Profile</h2>
             
+            <div className="stats-summary">
+              <div className="stat-item">
+                <FaVoteYea className="stat-icon" />
+                <div>
+                  <h3>{userVotes.length}</h3>
+                  <p>Total Assessments</p>
+                </div>
+              </div>
+              <div className="stat-item">
+                <FaChartLine className="stat-icon" />
+                <div>
+                  <h3>{
+                    userVotes.length > 0 
+                      ? (userVotes.reduce((sum, vote) => sum + parseFloat(vote.percentage || 0), 0) / userVotes.length)
+                      : 0 
+                  }%</h3>
+                  <p>Average Approval</p>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          {editMode ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label style={{ fontWeight: '500' }}>Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={editedProfile.name}
-                  onChange={handleProfileChange}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '5px',
-                    border: darkMode ? '1px solid #334155' : '1px solid #cbd5e1',
-                    backgroundColor: darkMode ? '#1e293b' : 'white',
-                    color: darkMode ? '#e2e8f0' : '#1e293b',
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label style={{ fontWeight: '500' }}>Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={editedProfile.email}
-                  onChange={handleProfileChange}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '5px',
-                    border: darkMode ? '1px solid #334155' : '1px solid #cbd5e1',
-                    backgroundColor: darkMode ? '#1e293b' : 'white',
-                    color: darkMode ? '#e2e8f0' : '#1e293b',
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '15px' }}>
-                <button 
-                  style={{
-                    padding: '10px 15px',
-                    backgroundColor: darkMode ? '#334155' : '#e2e8f0',
-                    color: darkMode ? '#f8fafc' : '#1e293b',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setEditMode(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  style={{
-                    padding: '10px 15px',
-                    backgroundColor: darkMode ? '#3b82f6' : '#2563eb',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={updateProfile}
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p><strong>Name:</strong> {user?.username}</p>
-              <p><strong>Email:</strong> {user?.email}</p>
-              <p><strong>Role:</strong> {user?.role || 'No role specified'}</p>
-            </div>
-          )}
         </div>
 
-        <div style={{
-          backgroundColor: darkMode ? '#1e293b' : 'white',
-          borderRadius: '5px',
-          padding: '20px',
-          marginBottom: '20px',
-        }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '15px' }}>
-            <FaChartBar style={{ marginRight: '10px' }} />
-            Voting Analysis
-          </h2>
-          
-          <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: '15px',
-            marginBottom: '20px',
-          }}>
-            <div style={{ 
-              backgroundColor: darkMode ? '#334155' : '#e2e8f0',
-              borderRadius: '5px',
-              padding: '15px',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>{candidates.length}</div>
-              <div style={{ fontSize: '0.875rem' }}>Total Candidates</div>
-            </div>
-            <div style={{ 
-              backgroundColor: darkMode ? '#334155' : '#e2e8f0',
-              borderRadius: '5px',
-              padding: '15px',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>
-                {Object.values(voteResults).reduce((total, candidate) => {
-                  return total + (candidate.votes?.length || 0);
-                }, 0)}
-              </div>
-              <div style={{ fontSize: '0.875rem' }}>Total Votes Cast</div>
-            </div>
-            <div style={{ 
-              backgroundColor: darkMode ? '#334155' : '#e2e8f0',
-              borderRadius: '5px',
-              padding: '15px',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>
-                {Object.keys(groupCandidatesByPosition()).length}
-              </div>
-              <div style={{ fontSize: '0.875rem' }}>Positions</div>
-            </div>
-            <div style={{ 
-              backgroundColor: darkMode ? '#334155' : '#e2e8f0',
-              borderRadius: '5px',
-              padding: '15px',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700' }}>
-                {Object.keys(userVotes).length}
-              </div>
-              <div style={{ fontSize: '0.875rem' }}>Your Assessments</div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '30px' }}>
-            <h3>Top Candidates by Votes</h3>
-            <BarChart
-              width={800}
-              height={400}
-              data={candidates.map(candidate => ({
-                name: candidate.name,
-                votes: voteResults[candidate._id]?.votes.length || 0,
-                percentage: getVotePercentage(candidate._id)
-              })).sort((a, b) => b.votes - a.votes).slice(0, 5)}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="votes" fill="#8884d8" name="Total Votes" />
-              <Bar dataKey="percentage" fill="#82ca9d" name="Approval %" />
-            </BarChart>
-          </div>
-
-          <div style={{ marginTop: '30px' }}>
-            <h3>Vote Distribution by Position</h3>
-            <PieChart width={800} height={400}>
-              <Pie
-                data={Object.entries(groupCandidatesByPosition()).map(([position, candidates]) => ({
-                  name: position,
-                  value: candidates.reduce((total, candidate) => {
-                    return total + (voteResults[candidate._id]?.votes.length || 0);
-                  }, 0)
-                }))}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={150}
-                fill="#8884d8"
-                dataKey="value"
-                nameKey="name"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {Object.entries(groupCandidatesByPosition()).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+        <div className="top-performers-section">
+          <h2>Top Performers by Position</h2>
+          <div className="top-performers-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Position</th>
+                  <th>Candidate</th>
+                  <th>Party</th>
+                  <th>Approval</th>
+                  <th>Votes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {getTopPerformers().map((performer, index) => (
+                  <tr key={index}>
+                    <td>{performer.position}</td>
+                    <td>
+                      <div className="candidate-info">
+                        <img 
+                          src={candidates.find(c => c.name === performer.name)?.profileImage || 'https://via.placeholder.com/40'} 
+                          alt={performer.name}
+                          className="candidate-image"
+                        />
+                        {performer.name}
+                      </div>
+                    </td>
+                    <td>{performer.party}</td>
+                    <td style={{ color: getVoteColor(performer.approval) }}>
+                      {performer.approval}%
+                    </td>
+                    <td>{performer.votes}</td>
+                  </tr>
                 ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
+              </tbody>
+            </table>
           </div>
+        </div>
+
+        <div className="positions-analysis">
+          <h2>Your Assessments by Position</h2>
+          
+          {Object.entries(groupedCandidates).map(([position, positionCandidates]) => {
+            const positionVotes = userVotes.filter(vote => vote.position === position);
+            if (positionVotes.length === 0) return null;
+
+            return (
+              <div key={position} className="position-section">
+                <div 
+                  className="position-header"
+                  onClick={() => togglePosition(position)}
+                >
+                  <h3>{position}</h3>
+                  <div className="toggle-icon">
+                    {expandedPosition === position ? <FaChevronUp /> : <FaChevronDown />}
+                  </div>
+                </div>
+                
+                {expandedPosition === position && (
+                  <div className="position-content">
+                    <div className="chart-container">
+                      <Bar data={prepareUserChartData(position)} options={chartOptions} />
+                    </div>
+                    
+                    <div className="candidates-list">
+                      {positionCandidates.map(candidate => {
+                        const userVote = getUserVoteForCandidate(candidate._id);
+                        if (!userVote) return null;
+
+                        return (
+                          <div key={candidate._id} className="candidate-card">
+                            <div className="candidate-header">
+                              <img 
+                                src={candidate.profileImage || 'https://via.placeholder.com/60'} 
+                                alt={candidate.name}
+                                className="candidate-image"
+                              />
+                              <div className="candidate-info">
+                                <h4>{candidate.name}</h4>
+                                <p className="party">{candidate.party}</p>
+                                <div className="vote-details">
+                                  <span className="approval" style={{ color: getVoteColor(userVote.percentage) }}>
+                                    {userVote.percentage}% approval
+                                  </span>
+                                  <span className="vote-value" style={{ color: getVoteColor(userVote.percentage) }}>
+                                    ({getVoteLabel(userVote.voteValue)})
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      <style jsx>{`
+        .dashboard {
+          display: flex;
+          min-height: 100vh;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .sidebar {
+          width: 250px;
+          background: #2c3e50;
+          color: white;
+          position: fixed;
+          height: 100%;
+        }
+
+        .sidebar-content {
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+        
+        .logo {
+          font-size: 1.5rem;
+          font-weight: bold;
+          margin-bottom: 30px;
+          text-align: center;
+        }
+        
+        nav {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          flex-grow: 1;
+        }
+        
+        .nav-link {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          color: #bdc3c7;
+          text-decoration: none;
+          padding: 12px;
+          border-radius: 4px;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+          background: #34495e;
+          color: white;
+        }
+        
+        .logout-btn {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: transparent;
+          color: #bdc3c7;
+          border: none;
+          padding: 12px;
+          cursor: pointer;
+          margin-top: auto;
+        }
+        
+        .logout-btn:hover {
+          color: white;
+        }
+
+        .main-content {
+          flex: 1;
+          padding: 30px;
+          margin-left: 250px;
+          max-width: 1200px;
+        }
+
+        .content-header {
+          margin-bottom: 30px;
+        }
+        
+        .content-header h1 {
+          color: #2c3e50;
+          margin-bottom: 20px;
+        }
+
+        .user-profile {
+          background: white;
+          border-radius: 8px;
+          padding: 25px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          margin-bottom: 30px;
+        }
+
+        .profile-header {
+          display: flex;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .profile-image {
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          object-fit: cover;
+          margin-right: 20px;
+          border: 3px solid #eee;
+        }
+
+        .profile-info h2 {
+          margin: 0 0 5px;
+          color: #2c3e50;
+        }
+
+        .profile-info .email {
+          color: #7f8c8d;
+          margin: 0 0 5px;
+        }
+
+        .profile-info .role {
+          color: #7f8c8d;
+          font-size: 0.9rem;
+          margin: 0;
+        }
+
+        .stats-summary {
+          display: flex;
+          gap: 20px;
+        }
+
+        .stat-item {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          background: #f8f9fa;
+          padding: 15px;
+          border-radius: 8px;
+          flex: 1;
+        }
+
+        .stat-icon {
+          font-size: 1.5rem;
+          color: #3498db;
+        }
+
+        .stat-item h3 {
+          margin: 0;
+          font-size: 1.3rem;
+          color: #2c3e50;
+        }
+
+        .stat-item p {
+          margin: 5px 0 0;
+          color: #7f8c8d;
+          font-size: 0.9rem;
+        }
+
+        .top-performers-section {
+          background: white;
+          border-radius: 8px;
+          padding: 25px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          margin-bottom: 30px;
+        }
+
+        .top-performers-section h2 {
+          margin-top: 0;
+          color: #2c3e50;
+        }
+
+        .top-performers-table {
+          margin-top: 20px;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        th, td {
+          padding: 12px 15px;
+          text-align: left;
+          border-bottom: 1px solid #eee;
+        }
+
+        th {
+          background-color: #f8f9fa;
+          font-weight: 600;
+          color: #2c3e50;
+        }
+
+        tr:hover {
+          background-color: #f8f9fa;
+        }
+
+        .candidate-info {
+          display: flex;
+          align-items: center;
+        }
+
+        .candidate-image {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          object-fit: cover;
+          margin-right: 10px;
+          border: 1px solid #eee;
+        }
+
+        .positions-analysis {
+          background: white;
+          border-radius: 8px;
+          padding: 25px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .positions-analysis h2 {
+          margin-top: 0;
+          color: #2c3e50;
+        }
+
+        .position-section {
+          margin-bottom: 20px;
+          border: 1px solid #eee;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .position-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 15px 20px;
+          background-color: #f8f9fa;
+          cursor: pointer;
+        }
+
+        .position-header h3 {
+          margin: 0;
+          color: #2c3e50;
+        }
+
+        .toggle-icon {
+          color: #7f8c8d;
+        }
+
+        .position-content {
+          padding: 20px;
+        }
+
+        .chart-container {
+          height: 300px;
+          margin-bottom: 30px;
+        }
+
+        .candidates-list {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 15px;
+        }
+
+        .candidate-card {
+          border: 1px solid #eee;
+          border-radius: 8px;
+          padding: 15px;
+        }
+
+        .candidate-header {
+          display: flex;
+          align-items: center;
+        }
+
+        .candidate-card .candidate-image {
+          width: 60px;
+          height: 60px;
+          margin-right: 15px;
+        }
+
+        .candidate-card h4 {
+          margin: 0 0 5px;
+          font-size: 1.1rem;
+          color: #2c3e50;
+        }
+
+        .candidate-card .party {
+          color: #7f8c8d;
+          font-size: 0.85rem;
+          margin: 0 0 5px;
+        }
+
+        .vote-details {
+          font-size: 0.9rem;
+        }
+
+        .vote-details .vote-value {
+          margin-left: 5px;
+          font-style: italic;
+        }
+
+        .loading, .error {
+          padding: 20px;
+          text-align: center;
+          font-size: 1.1rem;
+        }
+        
+        .error {
+          color: #e74c3c;
+        }
+
+        @media (max-width: 768px) {
+          .dashboard {
+            flex-direction: column;
+          }
+          
+          .sidebar {
+            position: relative;
+            width: 100%;
+            height: auto;
+          }
+          
+          .main-content {
+            margin-left: 0;
+            padding: 20px;
+          }
+
+          .profile-header {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .profile-image {
+            margin-right: 0;
+            margin-bottom: 15px;
+          }
+
+          .stats-summary {
+            flex-direction: column;
+          }
+
+          .candidates-list {
+            grid-template-columns: 1fr;
+          }
+
+          .top-performers-table {
+            overflow-x: auto;
+          }
+        }
+      `}</style>
     </div>
   );
 };

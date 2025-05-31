@@ -288,7 +288,7 @@ const VoterDashboard = () => {
               <FaVoteYea className="nav-icon" /> 
               <span>Assess</span>
             </Link>
-            <Link to="/analysis" className="nav-link">
+            <Link to="/generalAnalysis" className="nav-link">
               <FaChartBar className="nav-icon" /> 
               <span>General Analysis</span>
             </Link>

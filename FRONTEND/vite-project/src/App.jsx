@@ -7,6 +7,7 @@ import RegisterUserForm from './voterRegistration';
 import extractAndValidateToken from './localStorage';
 import AdminDashboard from './adminPage';
 import UserDashboard from './userAccount';
+import GeneralAnalysis from './generalAnalysis';
 const isAuthenticated = () => {
   const { token, decoded } = extractAndValidateToken();
   return token && decoded;
@@ -55,6 +56,12 @@ function App() {
           path="/userDashboard"
           element={isAuthenticated() ? <UserDashboard /> : <Navigate to="/auth" replace />}
         />
+
+        <Route
+          path="/generalAnalysis"
+          element={isAuthenticated() ? <GeneralAnalysis /> : <Navigate to="/auth" replace />}
+        />
+        
         
       
         <Route
