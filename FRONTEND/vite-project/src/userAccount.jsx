@@ -155,6 +155,7 @@ const UserDashboard = () => {
         if (!vote.contestant) return;
 
         const candidateId = vote.contestant._id;
+
         
         if (!results[candidateId]) {
           results[candidateId] = {
@@ -171,6 +172,7 @@ const UserDashboard = () => {
           voterName: vote.voter.email || "Unknown"
         });
       });
+
 
       setVoteResults(results);
       setApiErrors(prev => ({ ...prev, voteResults: null }));

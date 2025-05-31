@@ -41,29 +41,28 @@ const VoterDashboard = () => {
     { value: 'strong_disapprove', label: 'Strongly Disapprove', color: '#EF4444' }
   ];
 
-  // Mock data for candidates without previous promises
-  const mockCandidateData = (candidates) => {
-    return candidates.map(candidate => {
-      if (!candidate.previousPromises || candidate.previousPromises.length === 0) {
-        return {
-          ...candidate,
-          previousPromises: [
-            { text: "Improve local infrastructure", fulfilled: true },
-            { text: "Increase education funding", fulfilled: false },
-            { text: "Create new jobs program", fulfilled: true }
-          ],
-          previousLeadership: candidate.previousLeadership || [
-            { position: "Mayor", organization: "Springfield City", duration: "2015-2019" }
-          ],
-          promises: candidate.promises || [
-            "Reduce taxes for middle class",
-            "Improve public transportation",
-            "Increase police funding"
-          ]
-        };
-      }
-      return candidate;
-    });
+  // Mock implementation status data
+  const mockImplementationStatus = {
+    "Education Reform": [
+      { promise: "Build 10 new schools", implemented: true },
+      { promise: "Increase teacher salaries by 20%", implemented: false },
+      { promise: "Provide free textbooks", implemented: true }
+    ],
+    "Healthcare Improvement": [
+      { promise: "Build 5 new hospitals", implemented: true },
+      { promise: "Provide free malaria drugs", implemented: false },
+      { promise: "Recruit 1000 new nurses", implemented: true }
+    ],
+    "Infrastructure Development": [
+      { promise: "Repair all major roads", implemented: false },
+      { promise: "Build new bridges", implemented: true },
+      { promise: "Install street lights in all cities", implemented: false }
+    ],
+    "Agriculture Support": [
+      { promise: "Provide subsidized fertilizers", implemented: true },
+      { promise: "Build irrigation systems", implemented: false },
+      { promise: "Create farmer markets", implemented: true }
+    ]
   };
 
   useEffect(() => {
@@ -116,15 +115,18 @@ const VoterDashboard = () => {
         results[candidateId].totalPercentage += parseFloat(vote.percentage || 0);
         results[candidateId].voteCount += 1;
         
+        // Count vote types
         if (vote.voteValue && results[candidateId].voteDistribution[vote.voteValue] !== undefined) {
           results[candidateId].voteDistribution[vote.voteValue] += 1;
         }
 
+        // Track positions the user has voted for
         if (vote.voter._id === userVoted) {
           userVotedPositions.add(vote.position);
         }
       });
       
+      // Calculate average for each candidate
       Object.keys(results).forEach(candidateId => {
         results[candidateId].averageApproval = 
           results[candidateId].voteCount > 0 
@@ -181,7 +183,20 @@ const VoterDashboard = () => {
     setLoading(true);
     try {
       const response = await axios.get('http://localhost:8000/contestants');
-      const candidatesWithMockData = mockCandidateData(response.data);
+      // Add mock implementation data to candidates
+      const candidatesWithMockData = response.data.map(candidate => {
+        const promisesWithStatus = candidate.promises?.map(promise => {
+          const category = candidate.position.split(' ')[0]; // Simple way to match mock data
+          const status = mockImplementationStatus[category]?.find(item => 
+            item.promise.toLowerCase() === promise.toLowerCase()
+          );
+          return {
+            text: promise,
+            implemented: status?.implemented ?? false
+          };
+        }) || [];
+        return { ...candidate, promisesWithStatus };
+      });
       setCandidates(candidatesWithMockData);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch candidates');
@@ -216,9 +231,11 @@ const VoterDashboard = () => {
         [candidateId]: selectedVotes[candidateId]
       }));
       
+      // Add position to votedPositions and close all candidates in this position
       setVotedPositions(prev => new Set(prev).add(position));
       setExpandedCandidate(null);
       
+      // Refresh data
       fetchCandidates();
       fetchAllVotes();
     } catch (err) {
@@ -268,7 +285,10 @@ const VoterDashboard = () => {
   };
 
   const toggleCandidate = (candidateId, position) => {
-    if (votedPositions.has(position)) return;
+    if (votedPositions.has(position)) {
+      // If user already voted for this position, don't allow toggling
+      return;
+    }
     setExpandedCandidate(expandedCandidate === candidateId ? null : candidateId);
   };
 
@@ -282,15 +302,11 @@ const VoterDashboard = () => {
           <nav>
             <Link to="/" className="nav-link">
               <FaHome className="nav-icon" /> 
-              <span>Home</span>
+              <span className="nav-text">Home</span>
             </Link>
             <Link to="/vote" className="nav-link active">
               <FaVoteYea className="nav-icon" /> 
-              <span>Assess</span>
-            </Link>
-            <Link to="/analysis" className="nav-link">
-              <FaChartBar className="nav-icon" /> 
-              <span>General Analysis</span>
+              <span className="nav-text">Assess</span>
             </Link>
             
             {!isAdmin && (
@@ -299,7 +315,7 @@ const VoterDashboard = () => {
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <FaBell className="nav-icon" /> 
-                <span>Notifications</span>
+                <span className="nav-text">Notifications</span>
                 {notifications.filter(n => !n.read).length > 0 && (
                   <span className="notification-badge">
                     {notifications.filter(n => !n.read).length}
@@ -311,20 +327,20 @@ const VoterDashboard = () => {
             {!isAdmin && (
               <Link to="/userDashboard" className="nav-link">
                 <FaUserCircle className="nav-icon" /> 
-                <span>My Account</span>
+                <span className="nav-text">My Account</span>
               </Link>
             )}
             
             {isAdmin && (
               <Link to="/register-contestant" className="nav-link">
                 <FaUserCog className="nav-icon" /> 
-                <span>Register Contestant</span>
+                <span className="nav-text">Register Contestant</span>
               </Link>
             )}
           </nav>
           <button onClick={handleLogout} className="logout-btn">
             <FaSignOutAlt className="logout-icon" /> 
-            <span>Logout</span>
+            <span className="logout-text">Logout</span>
           </button>
         </div>
       </div>
@@ -342,7 +358,12 @@ const VoterDashboard = () => {
           <div className="notification-panel">
             <div className="notification-header">
               <h3>Notifications</h3>
-              <button onClick={() => setShowNotifications(false)}>Close</button>
+              <button 
+                onClick={() => setShowNotifications(false)}
+                className="close-btn"
+              >
+                Close
+              </button>
             </div>
             <div className="notification-list">
               {notifications.length > 0 ? (
@@ -352,7 +373,10 @@ const VoterDashboard = () => {
                       {notification.message}
                     </div>
                     {!notification.read && (
-                      <button onClick={() => markAsRead(notification._id)}>
+                      <button 
+                        onClick={() => markAsRead(notification._id)}
+                        className="mark-read-btn"
+                      >
                         Mark as read
                       </button>
                     )}
@@ -368,7 +392,7 @@ const VoterDashboard = () => {
         <div className="positions-container">
           {Object.entries(groupedCandidates).map(([position, positionCandidates]) => (
             <div key={position} className="position-section">
-              <h2>{position}</h2>
+              <h2 className="position-title">{position}</h2>
               <div className="candidates-grid">
                 {positionCandidates.map(candidate => {
                   const voteData = getUserVotePercentage(candidate._id);
@@ -405,6 +429,7 @@ const VoterDashboard = () => {
                                     count > 0 && (
                                       <span 
                                         key={key} 
+                                        className="vote-distribution-item"
                                         style={{ color: getVoteColor(key) }}
                                       >
                                         {getVoteLabel(key)}: {count}
@@ -413,7 +438,10 @@ const VoterDashboard = () => {
                                   ))}
                                 </div>
                               </div>
-                              <p style={{ color: getVoteColor(voteData.voteValue) }}>
+                              <p 
+                                className="user-vote"
+                                style={{ color: getVoteColor(voteData.voteValue) }}
+                              >
                                 Your assessment: {getVoteLabel(voteData.voteValue)}
                               </p>
                             </>
@@ -429,72 +457,71 @@ const VoterDashboard = () => {
                       <div className="candidate-details">
                         <div className="bio-section">
                           <h4>Bio</h4>
-                          <p>{candidate.bio || 'No bio available'}</p>
+                          <p className="bio-content">{candidate.bio || 'No bio available'}</p>
                         </div>
                         
-                        <div className="previous-leadership">
-                          <h4>Previous Leadership Experience</h4>
-                          <ul>
-                            {candidate.previousLeadership.map((role, i) => (
-                              <li key={`role-${i}`}>
-                                <strong>{role.position}</strong> ({role.duration}) - {role.organization}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div className="promises-section">
-                          <h4>Previous Promises & Performance</h4>
-                          <div className="promises-status-container">
-                            <div className="implemented-promises">
-                              <h5>Fulfilled Promises</h5>
-                              <ul>
-                                {candidate.previousPromises
-                                  .filter(promise => promise.fulfilled)
-                                  .map((promise, i) => (
-                                    <li key={`fulfilled-${i}`} className="promise-item">
-                                      <span>{promise.text}</span>
-                                      <span className="status-badge implemented">
-                                        <FaCheck /> Implemented
-                                      </span>
-                                    </li>
-                                  ))}
-                              </ul>
-                            </div>
-                            <div className="not-implemented-promises">
-                              <h5>Unfulfilled Promises</h5>
-                              <ul>
-                                {candidate.previousPromises
-                                  .filter(promise => !promise.fulfilled)
-                                  .map((promise, i) => (
-                                    <li key={`unfulfilled-${i}`} className="promise-item">
-                                      <span>{promise.text}</span>
-                                      <span className="status-badge not-implemented">
-                                        <FaTimes /> Not Implemented
-                                      </span>
-                                    </li>
-                                  ))}
-                              </ul>
+                        {/* Previous Promises Section */}
+                        {candidate.promisesWithStatus?.length > 0 && (
+                          <div className="promises-section">
+                            <h4>Previous Promises and Implementation Status</h4>
+                            <div className="promises-status-container">
+                              <div className="implemented-promises">
+                                <h5>Implemented</h5>
+                                <ul className="promises-list">
+                                  {candidate.promisesWithStatus
+                                    .filter(promise => promise.implemented)
+                                    .map((promise, i) => (
+                                      <li key={`implemented-${i}`} className="promise-item">
+                                        <span className="promise-text">{promise.text}</span>
+                                        <span className="status-badge implemented">
+                                          <FaCheck className="status-icon" /> Implemented
+                                        </span>
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                              <div className="not-implemented-promises">
+                                <h5>Not Implemented</h5>
+                                <ul className="promises-list">
+                                  {candidate.promisesWithStatus
+                                    .filter(promise => !promise.implemented)
+                                    .map((promise, i) => (
+                                      <li key={`not-implemented-${i}`} className="promise-item">
+                                        <span className="promise-text">{promise.text}</span>
+                                        <span className="status-badge not-implemented">
+                                          <FaTimes className="status-icon" /> Not Implemented
+                                        </span>
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
 
-                        <div className="current-promises">
-                          <h4>Current Campaign Promises</h4>
-                          <ul>
-                            {candidate.promises.map((promise, i) => (
-                              <li key={`current-${i}`}><b>-</b>
-                                {promise}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                        {/* Current Promises Section */}
+                        {candidate.currentPromises?.length > 0 && (
+                          <div className="current-promises-section">
+                            <h4>Current Promises</h4>
+                            <ul className="promises-list">
+                              {candidate.currentPromises.map((promise, i) => (
+                                <li key={`current-${i}`} className="promise-item current">
+                                  <span className="promise-text">{promise}</span>
+                                  <span className="status-badge pending">
+                                    Pending
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
                         {!hasVoted && (isExpanded || votedPositions.has(candidate.position)) && (
                           <div className="vote-section">
                             <div className="vote-options">
-                              <label>Select assessment:</label>
+                              <label htmlFor={`vote-select-${candidate._id}`}>Select assessment:</label>
                               <select
+                                id={`vote-select-${candidate._id}`}
                                 value={selectedVotes[candidate._id] || ''}
                                 onChange={(e) => setSelectedVotes(prev => ({
                                   ...prev,
@@ -511,8 +538,9 @@ const VoterDashboard = () => {
                             </div>
 
                             <div className="comment-section">
-                              <label>Comments (optional):</label>
+                              <label htmlFor={`comment-${candidate._id}`}>Comments (optional):</label>
                               <textarea
+                                id={`comment-${candidate._id}`}
                                 placeholder="Add your comments here..."
                                 value={comments[candidate._id] || ''}
                                 onChange={(e) => setComments(prev => ({
@@ -526,6 +554,7 @@ const VoterDashboard = () => {
                             <button
                               onClick={() => showConfirmation(candidate._id, candidate.position)}
                               disabled={!selectedVotes[candidate._id] || loading}
+                              className="submit-btn"
                             >
                               {loading ? 'Submitting...' : 'Submit Assessment'}
                             </button>
@@ -542,10 +571,18 @@ const VoterDashboard = () => {
       </div>
 
       <style jsx>{`
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
         .dashboard {
           display: flex;
           min-height: 100vh;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: #f8f9fa;
+          color: #333;
         }
         
         .sidebar {
@@ -554,27 +591,31 @@ const VoterDashboard = () => {
           color: white;
           position: fixed;
           height: 100%;
+          overflow-y: auto;
+          z-index: 100;
         }
 
         .sidebar-content {
-          padding: 20px;
           display: flex;
           flex-direction: column;
           height: 100%;
+          padding: 20px 0;
         }
         
         .logo {
           font-size: 1.5rem;
           font-weight: bold;
           margin-bottom: 30px;
+          color: #ecf0f1;
+          padding: 0 20px;
           text-align: center;
         }
         
         nav {
           display: flex;
           flex-direction: column;
-          gap: 5px;
           flex-grow: 1;
+          padding: 0 15px;
         }
         
         .nav-link {
@@ -583,22 +624,41 @@ const VoterDashboard = () => {
           gap: 12px;
           color: #bdc3c7;
           text-decoration: none;
-          padding: 12px;
+          padding: 12px 15px;
+          margin-bottom: 5px;
           border-radius: 4px;
+          transition: all 0.3s ease;
+          font-size: 0.95rem;
         }
         
         .nav-link:hover, .nav-link.active {
           background: #34495e;
-          color: white;
+          color: #ecf0f1;
         }
 
+        .nav-icon {
+          font-size: 1.1rem;
+          min-width: 24px;
+        }
+
+        .nav-text {
+          white-space: nowrap;
+        }
+        
+        .notification-icon {
+          position: relative;
+          cursor: pointer;
+        }
+        
         .notification-badge {
+          position: absolute;
+          top: -5px;
+          right: -5px;
           background: #e74c3c;
           color: white;
           border-radius: 50%;
           padding: 2px 6px;
           font-size: 0.7rem;
-          margin-left: auto;
         }
         
         .logout-btn {
@@ -608,24 +668,42 @@ const VoterDashboard = () => {
           background: transparent;
           color: #bdc3c7;
           border: none;
-          padding: 12px;
+          padding: 12px 15px;
+          margin: 20px 15px 0;
           cursor: pointer;
-          margin-top: auto;
+          width: calc(100% - 30px);
+          border-radius: 4px;
+          transition: all 0.3s ease;
+          font-size: 0.95rem;
+          text-align: left;
         }
         
         .logout-btn:hover {
-          color: white;
+          background: #34495e;
+          color: #ecf0f1;
         }
 
+        .logout-icon {
+          font-size: 1.1rem;
+          min-width: 24px;
+        }
+        
         .main-content {
           flex: 1;
           padding: 20px;
           margin-left: 250px;
-          max-width: 1200px;
+          background-color: #f8f9fa;
+          min-height: 100vh;
         }
 
         .content-header {
           margin-bottom: 30px;
+        }
+        
+        .content-header h1 {
+          color: #2c3e50;
+          margin-bottom: 10px;
+          font-size: 1.8rem;
         }
         
         .error {
@@ -634,25 +712,43 @@ const VoterDashboard = () => {
           padding: 12px;
           background: #fadbd8;
           border-radius: 4px;
+          border-left: 4px solid #e74c3c;
+        }
+        
+        .loading {
+          padding: 15px;
+          background: #f0f0f0;
+          border-radius: 4px;
+          text-align: center;
+          color: #7f8c8d;
         }
         
         .positions-container {
-          margin-top: 20px;
+          max-width: 1200px;
+          margin: 0 auto;
         }
         
         .position-section {
-          margin-bottom: 40px;
+          margin-bottom: 30px;
           padding: 20px;
           background: white;
           border-radius: 8px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .position-title {
+          color: #2c3e50;
+          margin-bottom: 15px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #eee;
+          font-size: 1.4rem;
         }
         
         .candidates-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 25px;
-          margin-top: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 20px;
+          margin-top: 15px;
         }
         
         .candidate-card {
@@ -660,16 +756,15 @@ const VoterDashboard = () => {
           border-radius: 8px;
           padding: 15px;
           background: white;
-          display: flex;
-          flex-direction: column;
-          height: auto;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.03);
           transition: all 0.3s ease;
+          overflow: hidden;
         }
 
         .candidate-card.expanded {
           box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-
+        
         .candidate-header {
           display: flex;
           gap: 15px;
@@ -688,10 +783,12 @@ const VoterDashboard = () => {
         .candidate-info {
           flex: 1;
           min-width: 0;
+          overflow: hidden;
         }
         
         .candidate-info h3 {
-          margin: 0;
+          margin: 0 0 5px 0;
+          color: #2c3e50;
           font-size: 1.1rem;
           white-space: nowrap;
           overflow: hidden;
@@ -699,132 +796,186 @@ const VoterDashboard = () => {
         }
         
         .party {
-          color: #7f8c8d;
-          font-size: 0.85rem;
           margin: 3px 0;
+          font-size: 0.85rem;
+          color: #7f8c8d;
+          font-weight: 500;
         }
 
-        .vote-message, .average-approval {
+        .vote-message, 
+        .average-approval,
+        .user-vote {
+          margin: 3px 0;
           font-size: 0.85rem;
           color: #7f8c8d;
-          margin: 5px 0;
+        }
+
+        .user-vote {
+          font-weight: 600;
+        }
+
+        .approval-stats {
+          margin: 8px 0;
         }
 
         .vote-distribution {
           display: flex;
           flex-wrap: wrap;
           gap: 5px;
-          margin: 5px 0;
+          margin-top: 5px;
+        }
+
+        .vote-distribution-item {
           font-size: 0.75rem;
+          background: #f3f4f6;
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+        
+        .toggle-icon {
+          color: #95a5a6;
+          margin-left: 10px;
+          flex-shrink: 0;
+          padding-top: 3px;
         }
         
         .candidate-details {
           margin-top: 15px;
           padding-top: 15px;
           border-top: 1px solid #eee;
-          flex: 1;
-          overflow: hidden;
         }
 
+        .bio-section,
+        .promises-section,
+        .current-promises-section {
+          margin-bottom: 15px;
+        }
+        
         .candidate-details h4 {
-          margin: 10px 0 5px;
-          font-size: 0.95rem;
           color: #2c3e50;
+          margin-bottom: 8px;
+          font-size: 1rem;
         }
 
-        .candidate-details p, 
-        .candidate-details ul {
-          margin: 0 0 10px;
-          font-size: 0.85rem;
-          line-height: 1.4;
+        .candidate-details h5 {
+          color: #4b5563;
+          margin: 8px 0;
+          font-size: 0.9rem;
+          font-weight: 600;
         }
-
+        
+        .bio-content {
+          margin: 0 0 10px 0;
+          color: #34495e;
+          font-size: 0.9rem;
+          line-height: 1.5;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+        
         .promises-status-container {
           display: flex;
+          flex-direction: column;
           gap: 15px;
-          margin: 10px 0;
         }
 
         .implemented-promises,
         .not-implemented-promises {
           flex: 1;
-          min-width: 0;
         }
         
-        .promises-section h5 {
-          font-size: 0.9rem;
-          margin: 10px 0 5px;
-          color: #2c3e50;
-        }
-        
-        .promises-section ul,
-        .current-promises ul {
+        .promises-list {
           list-style: none;
           padding: 0;
-          margin: 10px 0;
-          max-height: 150px;
+          margin: 0;
+          max-height: 200px;
           overflow-y: auto;
         }
         
         .promise-item {
           display: flex;
           justify-content: space-between;
+          align-items: center;
           margin-bottom: 8px;
           padding: 8px;
           background: #f8f9fa;
           border-radius: 4px;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
+        }
+
+        .promise-item.current {
+          background: #f0f9ff;
+        }
+        
+        .promise-text {
+          flex: 1;
+          color: #34495e;
+          margin-right: 10px;
           word-break: break-word;
         }
         
-        .promise-item span:first-child {
-          flex: 1;
-          margin-right: 10px;
-        }
-        
         .status-badge {
-          display: inline-flex;
+          display: flex;
           align-items: center;
           padding: 4px 8px;
           border-radius: 12px;
-          font-size: 0.7rem;
+          font-size: 0.75rem;
+          font-weight: 500;
           white-space: nowrap;
         }
         
-        .status-badge svg {
-          margin-right: 3px;
-        }
-        
-        .implemented {
+        .status-badge.implemented {
           background-color: #d1fae5;
           color: #065f46;
         }
         
-        .not-implemented {
+        .status-badge.not-implemented {
           background-color: #fee2e2;
           color: #b91c1c;
         }
 
+        .status-badge.pending {
+          background-color: #dbeafe;
+          color: #1e40af;
+        }
+        
+        .status-icon {
+          margin-right: 4px;
+          font-size: 0.7rem;
+        }
+        
         .vote-section {
           margin-top: 15px;
-          padding-top: 15px;
-          border-top: 1px solid #eee;
         }
 
+        .vote-options,
+        .comment-section {
+          margin-bottom: 15px;
+        }
+        
         .vote-section label {
           display: block;
-          margin: 10px 0 5px;
+          margin-bottom: 5px;
           font-size: 0.9rem;
+          color: #2c3e50;
+          font-weight: 500;
         }
         
         .vote-section select, 
         .vote-section textarea {
           width: 100%;
           padding: 10px;
+          margin-bottom: 10px;
           border: 1px solid #ddd;
           border-radius: 4px;
-          margin-bottom: 10px;
-          font-size: 0.85rem;
+          font-size: 0.9rem;
+          font-family: inherit;
+          transition: border-color 0.3s;
+        }
+
+        .vote-section select {
+          background-color: white;
+          cursor: pointer;
         }
         
         .vote-section textarea {
@@ -832,7 +983,13 @@ const VoterDashboard = () => {
           resize: vertical;
         }
         
-        .vote-section button {
+        .vote-section select:focus, 
+        .vote-section textarea:focus {
+          outline: none;
+          border-color: #3498db;
+        }
+        
+        .submit-btn {
           width: 100%;
           padding: 12px;
           background: #2c3e50;
@@ -840,22 +997,18 @@ const VoterDashboard = () => {
           border: none;
           border-radius: 4px;
           cursor: pointer;
-          font-size: 0.9rem;
-          transition: background 0.2s;
+          font-weight: 600;
+          transition: background 0.3s;
+          font-size: 0.95rem;
         }
         
-        .vote-section button:hover {
-          background: #1a252f;
+        .submit-btn:hover {
+          background: #34495e;
         }
         
-        .vote-section button:disabled {
+        .submit-btn:disabled {
           background: #95a5a6;
           cursor: not-allowed;
-        }
-        
-        .toggle-icon {
-          margin-left: 10px;
-          color: #7f8c8d;
         }
         
         .notification-panel {
@@ -867,28 +1020,39 @@ const VoterDashboard = () => {
           background: white;
           box-shadow: -2px 0 15px rgba(0,0,0,0.1);
           z-index: 1000;
+          display: flex;
+          flex-direction: column;
         }
         
         .notification-header {
           display: flex;
           justify-content: space-between;
-          padding: 15px;
+          align-items: center;
+          padding: 15px 20px;
           border-bottom: 1px solid #eee;
           background: #2c3e50;
           color: white;
         }
         
-        .notification-header button {
-          background: none;
-          border: none;
+        .notification-header h3 {
+          font-size: 1.1rem;
+          margin: 0;
+        }
+        
+        .close-btn {
+          background: #e74c3c;
           color: white;
+          border: none;
+          padding: 5px 10px;
+          border-radius: 3px;
           cursor: pointer;
+          font-size: 0.85rem;
         }
         
         .notification-list {
-          padding: 15px;
+          flex: 1;
           overflow-y: auto;
-          height: calc(100% - 60px);
+          padding: 15px;
         }
         
         .notification-item {
@@ -896,23 +1060,45 @@ const VoterDashboard = () => {
           border-bottom: 1px solid #eee;
         }
         
-        .notification-item button {
-          background: #2c3e50;
-          color: white;
-          border: none;
-          padding: 5px 10px;
-          border-radius: 4px;
-          font-size: 0.8rem;
-          margin-top: 5px;
-          cursor: pointer;
+        .notification-message {
+          margin-bottom: 8px;
+          font-size: 0.9rem;
+          line-height: 1.4;
         }
         
         .unread {
           font-weight: 600;
+          color: #2c3e50;
         }
         
         .read {
           color: #7f8c8d;
+        }
+        
+        .mark-read-btn {
+          background: #3498db;
+          color: white;
+          border: none;
+          padding: 5px 10px;
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 0.8rem;
+        }
+        
+        .no-notifications {
+          text-align: center;
+          color: #7f8c8d;
+          padding: 20px 0;
+        }
+
+        @media (max-width: 992px) {
+          .sidebar {
+            width: 220px;
+          }
+          
+          .main-content {
+            margin-left: 220px;
+          }
         }
 
         @media (max-width: 768px) {
@@ -933,7 +1119,6 @@ const VoterDashboard = () => {
           
           .candidates-grid {
             grid-template-columns: 1fr;
-            gap: 15px;
           }
           
           .notification-panel {
@@ -942,7 +1127,35 @@ const VoterDashboard = () => {
 
           .promises-status-container {
             flex-direction: column;
-            gap: 10px;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .content-header h1 {
+            font-size: 1.5rem;
+          }
+          
+          .position-title {
+            font-size: 1.2rem;
+          }
+          
+          .candidate-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+          
+          .candidate-info {
+            width: 100%;
+            text-align: center;
+          }
+          
+          .toggle-icon {
+            display: none;
+          }
+
+          .vote-distribution {
+            justify-content: center;
           }
         }
       `}</style>

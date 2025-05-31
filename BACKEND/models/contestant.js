@@ -18,13 +18,32 @@ const contestantSchema = new mongoose.Schema({
 
   nidaNumber: {
     type: String,
-    unique: true, 
+    unique: true,
     sparse: true
-  }, 
+  },
 
   promises: {
     type: [String],
-    default: [], 
+    default: [],
+  },
+
+  previousPromises: {
+    type: [String],
+    default: [],
+    required: false,
+
+  },
+
+  previousPosition: {
+    type: String,
+    default: null,
+    required: false,
+  },
+
+  timeServed: {
+    type: String,
+    default: null,
+    required: false,
   },
 
   profileImage: {
@@ -47,4 +66,4 @@ const contestantSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Contestant = mongoose.models.Contestant || mongoose.model("Contestant", contestantSchema);
-module.exports = {Contestant};
+module.exports = { Contestant };

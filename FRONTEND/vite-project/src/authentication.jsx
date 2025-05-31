@@ -29,12 +29,7 @@ const AuthPage = () => {
         text: `Success (${status}): ${responseData.message || "Login successful"}`,
         type: "success"
       });
-         await axios.post(
-          'http://localhost:8000/notifications',
-          {
-  "message":`user with email :${payload.email} is online`,
-  "read": false
-})
+
 
       
       

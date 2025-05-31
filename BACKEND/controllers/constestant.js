@@ -10,10 +10,22 @@ const validateImage = (file) => {
   if (!file.mimetype.startsWith('image/')) {
     return { valid: false, message: 'Invalid image type. Only images are allowed.' };
   }
-  if (file.size > 10 * 1024 * 1024) { // 5MB limit
+  if (file.size > 5 * 1024 * 1024) {
     return { valid: false, message: 'Image size exceeds 5MB limit.' };
   }
   return { valid: true };
+};
+
+const parseLastPromiseString = (str) => {
+  const positionMatch = str.match(/^(.+?) at /);
+  const organizationMatch = str.match(/ at (.+?) for /);
+  const durationMatch = str.match(/ for (.+)$/);
+
+  return {
+    position: positionMatch ? positionMatch[1].trim() : "",
+    organization: organizationMatch ? organizationMatch[1].trim() : "",
+    duration: durationMatch ? durationMatch[1].trim() : "",
+  };
 };
 
 const getAllContestants = async (req, res) => {
@@ -39,12 +51,11 @@ const getContestantById = async (req, res) => {
 
 const createContestant = async (req, res) => {
   try {
-    const { name, party, bio, nidaNumber, position, promises } = req.body;
+    const { name, party, bio, nidaNumber, position, promises, lastPromises } = req.body;
     const file = req.file;
 
-    // Basic validation
     if (!name || !party || !bio || !nidaNumber || !position) {
-      return res.status(400).json({ message: 'All fields are required except profileImage' });
+      return res.status(400).json({ message: 'All fields are required except profileImage and lastPromises' });
     }
     if (nidaNumber.length < 5) {
       return res.status(400).json({ message: 'NIDA number must be at least 5 characters long' });
@@ -59,7 +70,6 @@ const createContestant = async (req, res) => {
       return res.status(400).json({ message: 'Name must be between 3 and 50 characters long' });
     }
 
-    // Validate promises array or string
     let promiseArray = [];
     if (!promises) {
       return res.status(400).json({ message: 'At least one promise is required' });
@@ -76,7 +86,23 @@ const createContestant = async (req, res) => {
       return res.status(400).json({ message: 'A maximum of 5 promises is allowed' });
     }
 
-    // Validate image if uploaded
+    let previousPosition = null;
+    let organization = null;
+    let timeServed = null;
+
+    if (lastPromises) {
+      const parsedArray = typeof lastPromises === 'string'
+        ? lastPromises.split(',').map(p => p.trim()).filter(p => p.length > 0).map(parseLastPromiseString)
+        : [];
+
+      if (parsedArray.length > 0) {
+        const first = parsedArray[0]; // use only the first one
+        previousPosition = first.position;
+        organization = first.organization;
+        timeServed = first.duration;
+      }
+    }
+
     if (file) {
       const imageValidation = validateImage(file);
       if (!imageValidation.valid) {
@@ -86,7 +112,6 @@ const createContestant = async (req, res) => {
 
     await connectToDatabase();
 
-    // Check if contestant with same NIDA number exists
     const existing = await Contestant.findOne({ nidaNumber });
     if (existing) {
       return res.status(400).json({ message: 'Contestant with this NIDA already exists.' });
@@ -103,7 +128,10 @@ const createContestant = async (req, res) => {
       nidaNumber,
       promises: promiseArray,
       profileImage,
-      position
+      position,
+      previousPosition,
+      organization,
+      timeServed
     });
 
     await newContestant.save();
@@ -120,7 +148,26 @@ const updateContestant = async (req, res) => {
   try {
     await connectToDatabase();
 
-    const updated = await Contestant.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = { ...req.body };
+
+    if (req.body.lastPromises) {
+      const parsedArray = typeof req.body.lastPromises === 'string'
+        ? req.body.lastPromises.split(',').map(p => p.trim()).filter(p => p.length > 0).map(parseLastPromiseString)
+        : [];
+
+      if (parsedArray.length > 0) {
+        const first = parsedArray[0]; // extract only first parsed result
+        updateData.previousPosition = first.position;
+        updateData.organization = first.organization;
+        updateData.timeServed = first.duration;
+      }
+    }
+
+    if (req.body.promises && typeof req.body.promises === 'string') {
+      updateData.promises = req.body.promises.split(',').map(p => p.trim()).filter(p => p.length > 0);
+    }
+
+    const updated = await Contestant.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
     });
 
