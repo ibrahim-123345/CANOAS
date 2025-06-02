@@ -43,7 +43,7 @@ app.get('/currentUser', authenticateUser, getCurrentUser);
 app.get('/contestants', getAllContestants);
 app.post('/contestants', files.single('profileImage'), createContestant);
 app.get('/contestants/:id', getContestantById);
-app.put('/contestants/:id', updateContestant);
+app.patch('/contestants/:id', updateContestant);
 
 
 app.post('/vote', castVote);
@@ -70,7 +70,7 @@ app.patch('/notifications/:id/read', markAsRead);
 
 app.post("/comment", createComment);
 
-app.get("/:contestantId", getCommentsForContestant);
+app.get("/comments/:contestantId", getCommentsForContestant);
 
 
 

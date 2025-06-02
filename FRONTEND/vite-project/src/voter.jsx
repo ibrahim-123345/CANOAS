@@ -12,7 +12,8 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaCheck,
-  FaTimes
+  FaTimes,
+  FaComments
 } from 'react-icons/fa';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -31,6 +32,9 @@ const VoterDashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [voteResults, setVoteResults] = useState({});
   const [votedPositions, setVotedPositions] = useState(new Set());
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [candidateComments, setCandidateComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
   const navigate = useNavigate();
 
   const voteOptions = [
@@ -41,7 +45,6 @@ const VoterDashboard = () => {
     { value: 'strong_disapprove', label: 'Strongly Disapprove', color: '#EF4444' }
   ];
 
-  // Mock data for candidates without previous promises
   const mockCandidateData = (candidates) => {
     return candidates.map(candidate => {
       if (!candidate.previousPromises || candidate.previousPromises.length === 0) {
@@ -64,6 +67,19 @@ const VoterDashboard = () => {
       }
       return candidate;
     });
+  };
+
+  const fetchComments = async (contestantId) => {
+    setLoadingComments(true);
+    try {
+      const response = await axios.get(`http://localhost:8000/comments/${contestantId}`);
+      setCandidateComments(response.data);
+      setShowCommentsModal(true);
+    } catch (err) {
+      setError('Failed to fetch comments');
+    } finally {
+      setLoadingComments(false);
+    }
   };
 
   useEffect(() => {
@@ -242,8 +258,7 @@ const VoterDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('authData');
-    window.location.href = '/login?logout=true';
-    navigate('/');
+    navigate('/login');
   };
 
   const groupCandidatesByPosition = () => {
@@ -365,6 +380,36 @@ const VoterDashboard = () => {
           </div>
         )}
 
+        {showCommentsModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>Comments</h3>
+                <button onClick={() => setShowCommentsModal(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                {loadingComments ? (
+                  <div className="loading">Loading comments...</div>
+                ) : candidateComments.length > 0 ? (
+                  <div className="comments-list">
+                    {candidateComments.map((comment, index) => (
+                      <div key={index} className="comment-item">
+                        <div className="comment-user">{comment.userId?.name || 'Anonymous'}</div>
+                        <div className="comment-text">{comment.content}</div>
+                        <div className="comment-date">
+                          {new Date(comment.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-comments">No comments yet</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="positions-container">
           {Object.entries(groupedCandidates).map(([position, positionCandidates]) => (
             <div key={position} className="position-section">
@@ -481,13 +526,20 @@ const VoterDashboard = () => {
 
                         <div className="current-promises">
                           <h4>Current Campaign Promises</h4>
-                          <ul>
+                          <ul className="promises-list">
                             {candidate.promises.map((promise, i) => (
-                              <li key={`current-${i}`}><b>-</b>
-                                {promise}
+                              <li key={`current-${i}`}>
+                                <span className="promise-bullet">•</span>
+                                <span className="promise-text">{promise}</span>
                               </li>
                             ))}
                           </ul>
+                          <button 
+                            className="view-comments-btn"
+                            onClick={() => fetchComments(candidate._id)}
+                          >
+                            <FaComments /> View Comments
+                          </button>
                         </div>
 
                         {!hasVoted && (isExpanded || votedPositions.has(candidate.position)) && (
@@ -805,6 +857,58 @@ const VoterDashboard = () => {
           color: #b91c1c;
         }
 
+        .current-promises {
+          margin-top: 15px;
+        }
+
+        .current-promises h4 {
+          margin-bottom: 10px;
+        }
+
+        .promises-list {
+          margin: 10px 0;
+          padding-left: 15px;
+        }
+
+        .promises-list li {
+          display: flex;
+          align-items: flex-start;
+          margin-bottom: 8px;
+          padding: 8px;
+          background: #f8f9fa;
+          border-radius: 4px;
+          font-size: 0.85rem;
+        }
+
+        .promise-bullet {
+          color: #3b82f6;
+          margin-right: 10px;
+          font-weight: bold;
+        }
+
+        .promise-text {
+          flex: 1;
+        }
+
+        .view-comments-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #f0f4f8;
+          color: #3b82f6;
+          border: 1px solid #dbeafe;
+          border-radius: 4px;
+          padding: 8px 12px;
+          font-size: 0.85rem;
+          cursor: pointer;
+          margin-top: 10px;
+          transition: all 0.2s;
+        }
+
+        .view-comments-btn:hover {
+          background: #dbeafe;
+        }
+
         .vote-section {
           margin-top: 15px;
           padding-top: 15px;
@@ -915,6 +1019,91 @@ const VoterDashboard = () => {
           color: #7f8c8d;
         }
 
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 8px;
+          width: 90%;
+          max-width: 600px;
+          max-height: 80vh;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .modal-header {
+          padding: 15px 20px;
+          border-bottom: 1px solid #eee;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .modal-header h3 {
+          margin: 0;
+        }
+
+        .modal-header button {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #666;
+        }
+
+        .modal-body {
+          padding: 20px;
+          overflow-y: auto;
+          flex: 1;
+        }
+
+        .comments-list {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .comment-item {
+          padding: 15px;
+          border: 1px solid #eee;
+          border-radius: 8px;
+          background: #f9f9f9;
+        }
+
+        .comment-user {
+          font-weight: bold;
+          margin-bottom: 5px;
+          color: #2c3e50;
+        }
+
+        .comment-text {
+          margin-bottom: 5px;
+          line-height: 1.4;
+        }
+
+        .comment-date {
+          font-size: 0.8rem;
+          color: #7f8c8d;
+          text-align: right;
+        }
+
+        .no-comments {
+          text-align: center;
+          color: #7f8c8d;
+          padding: 20px;
+        }
+
         @media (max-width: 768px) {
           .dashboard {
             flex-direction: column;
@@ -943,6 +1132,10 @@ const VoterDashboard = () => {
           .promises-status-container {
             flex-direction: column;
             gap: 10px;
+          }
+
+          .modal-content {
+            width: 95%;
           }
         }
       `}</style>

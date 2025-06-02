@@ -8,6 +8,7 @@ import extractAndValidateToken from './localStorage';
 import AdminDashboard from './adminPage';
 import UserDashboard from './userAccount';
 import GeneralAnalysis from './generalAnalysis';
+import './index.css';
 const isAuthenticated = () => {
   const { token, decoded } = extractAndValidateToken();
   return token && decoded;

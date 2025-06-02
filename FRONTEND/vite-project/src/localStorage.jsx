@@ -27,6 +27,7 @@ const extractAndValidateToken = () => {
       username: decoded.user,
       email: decoded.email,
       role: decoded.role,
+      dateCreated: decoded.dateCreated ,
       expiresAt: decoded.exp ? decoded.exp * 1000 : null,
     };
 

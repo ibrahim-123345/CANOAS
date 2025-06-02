@@ -42,6 +42,7 @@ const UserDashboard = () => {
     const authData = JSON.parse(localStorage.getItem('authData'));
     if (authData) {
       setUserData(authData.user);
+
     }
     fetchCandidates();
     fetchAllVotes();
@@ -79,6 +80,8 @@ const UserDashboard = () => {
           percentage: vote.percentage,
           voteValue: vote.voteValue
         });
+
+        //console.log(results)
         
         results[candidateId].totalPercentage += parseFloat(vote.percentage || 0);
         results[candidateId].voteCount += 1;
@@ -87,9 +90,13 @@ const UserDashboard = () => {
           results[candidateId].voteDistribution[vote.voteValue] += 1;
         }
 
-        if (vote.voter._id === userData?.userId) {
+
+            const authData = JSON.parse(localStorage.getItem('authData'));
+            console.log(authData.user.userId)
+
+        if (vote.voter._id === authData.user.userId) {
           userVotesList.push({
-            candidateId,
+            candidateId: candidateId,
             candidateName: vote.contestant.name,
             position: vote.position,
             voteValue: vote.voteValue,
@@ -97,6 +104,7 @@ const UserDashboard = () => {
           });
         }
       });
+
       
       Object.keys(results).forEach(candidateId => {
         results[candidateId].averageApproval = 
@@ -106,6 +114,10 @@ const UserDashboard = () => {
       });
       
       setVoteResults(results);
+      console.log('Vote results:', results);
+      console.log('User votes:', userVotesList);
+      
+      
       setUserVotes(userVotesList);
     } catch (err) {
       console.error('Error fetching all votes:', err);
@@ -118,8 +130,11 @@ const UserDashboard = () => {
   const fetchCandidates = async () => {
     setLoading(true);
     try {
+                  console.log('User data:', userData);
+
       const response = await axios.get('http://localhost:8000/contestants');
       setCandidates(response.data);
+      //console.log('Candidates fetched:', response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch candidates');
     }
@@ -127,12 +142,15 @@ const UserDashboard = () => {
 
   const groupCandidatesByPosition = () => {
     const grouped = {};
+
     candidates.forEach(candidate => {
       if (!grouped[candidate.position]) {
         grouped[candidate.position] = [];
       }
       grouped[candidate.position].push(candidate);
     });
+
+    console.log('Grouped candidates by position:', grouped);
     return grouped;
   };
 
@@ -299,14 +317,14 @@ const UserDashboard = () => {
           <div className="user-profile">
             <div className="profile-header">
               <img 
-                src={userData?.profileImage || 'https://via.placeholder.com/100?text=USER'} 
+                src={userData?.profileImage || 'http://localhost:8000/uploads/img_avatar.png'} 
                 alt="User profile"
                 className="profile-image"
               />
               <div className="profile-info">
                 <h2>{userData?.name || 'User'}</h2>
                 <p className="email">{userData?.email}</p>
-                <p className="role">Voter since {new Date(userData?.createdAt).getFullYear()}</p>
+                <p className="role">Voter since {new Date(userData?.dateCreated).getFullYear()}</p>
               </div>
             </div>
             
@@ -383,7 +401,9 @@ const UserDashboard = () => {
               <div key={position} className="position-section">
                 <div 
                   className="position-header"
-                  onClick={() => togglePosition(position)}
+                  onClick={() => togglePosition(position)
+                    
+                  }
                 >
                   <h3>{position}</h3>
                   <div className="toggle-icon">

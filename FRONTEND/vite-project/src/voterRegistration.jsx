@@ -205,7 +205,7 @@ export default function ContestantForm() {
 
     try {
       const res = await axios.post(
-        "/api/contestants/register",
+        "/contestants",
         formDataToSend,
         {
           headers: {
@@ -259,8 +259,8 @@ export default function ContestantForm() {
     }
 
     try {
-      const res = await axios.put(
-        "/api/contestants/update-promises",
+      const res = await axios.post(
+        "/contestants/",
         {
           contestantId: formData.NIDA, // Using NIDA as identifier
           previousPromises: filteredPreviousPromises
