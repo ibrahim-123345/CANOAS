@@ -28,11 +28,15 @@ const contestantSchema = new mongoose.Schema({
   },
 
   previousPromises: {
-    type: [String],
-    default: [],
-    required: false,
-
-  },
+  type: [
+    {
+      promise: { type: String, required: true },
+      fulfilled: { type: Boolean, required: true },
+    }
+  ],
+  default: [],
+}
+,
 
   previousPosition: {
     type: String,

@@ -606,175 +606,186 @@ export default function ContestantForm() {
         </div>
       </form>
 
-      <style jsx>{`
-        .form-container {
-          max-width: 800px;
-          margin: 2rem auto;
-          padding: 2rem;
-          background: #fff;
-          border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 {
-          color: #2c3e50;
-          margin-bottom: 1.5rem;
-          text-align: center;
-        }
-
-        h3 {
-          color: #34495e;
-          margin-bottom: 1rem;
-          font-size: 1.2rem;
-        }
-
-        .error-message {
-          color: #e74c3c;
-          background: #fadbd8;
-          padding: 0.75rem;
-          border-radius: 4px;
-          margin-bottom: 1rem;
-          text-align: center;
-        }
-
-        .form-group {
-          margin-bottom: 1rem;
-        }
-
-        label {
-          display: block;
-          margin-bottom: 0.5rem;
-          color: #2c3e50;
-          font-weight: 500;
-        }
-
-        input[type="text"],
-        input[type="file"],
-        textarea {
-          width: 100%;
-          padding: 0.75rem;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          font-size: 1rem;
-          transition: border-color 0.3s;
-        }
-
-        input[type="text"]:focus,
-        textarea:focus {
-          border-color: #3498db;
-          outline: none;
-        }
-
-        textarea {
-          min-height: 100px;
-          resize: vertical;
-        }
-
-        .file-input {
-          padding: 0.5rem;
-        }
-
-        .file-info {
-          margin-top: 0.5rem;
-          font-size: 0.9rem;
-          color: #7f8c8d;
-        }
-
-        .promise-item,
-        .position-item {
-          background: #f8f9fa;
-          padding: 1rem;
-          border-radius: 4px;
-          margin-bottom: 1rem;
-          border: 1px solid #eee;
-        }
-
-        .checkbox-group {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin: 0.5rem 0;
-        }
-
-        .checkbox-group input {
-          width: auto;
-        }
-
-        .form-actions {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 2rem;
-        }
-
-        button {
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 4px;
-          font-size: 1rem;
-          cursor: pointer;
-          transition: background-color 0.3s;
-        }
-
-        .back-btn {
-          background: #95a5a6;
-          color: white;
-        }
-
-        .back-btn:hover {
-          background: #7f8c8d;
-        }
-
-        .next-btn,
-        .add-btn {
-          background: #3498db;
-          color: white;
-        }
-
-        .next-btn:hover,
-        .add-btn:hover {
-          background: #2980b9;
-        }
-
-        .submit-btn {
-          background: #2ecc71;
-          color: white;
-        }
-
-        .submit-btn:hover {
-          background: #27ae60;
-        }
-
-        .submit-btn:disabled {
-          background: #bdc3c7;
-          cursor: not-allowed;
-        }
-
-        .remove-btn {
-          background: #e74c3c;
-          color: white;
-          padding: 0.5rem 1rem;
-          font-size: 0.9rem;
-        }
-
-        .remove-btn:hover {
-          background: #c0392b;
-        }
-
-        @media (max-width: 768px) {
+      <div style={{
+  maxWidth: "800px",
+  margin: "2rem auto",
+  padding: "2rem",
+  background: "#fff",
+  borderRadius: "8px",
+  boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)"
+}}>
+  <style>
+        {`
           .form-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          }
+
+          h2 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            text-align: center;
+          }
+
+          h3 {
+            color: #34495e;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+          }
+
+          .error-message {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            text-align: center;
+          }
+
+          .form-group {
+            margin-bottom: 1rem;
+          }
+
+          label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-weight: 500;
+          }
+
+          input[type="text"],
+          input[type="file"],
+          textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+          }
+
+          input[type="text"]:focus,
+          textarea:focus {
+            border-color: #3498db;
+            outline: none;
+          }
+
+          textarea {
+            min-height: 100px;
+            resize: vertical;
+          }
+
+          .file-input {
+            padding: 0.5rem;
+          }
+
+          .file-info {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+          }
+
+          .promise-item,
+          .position-item {
+            background: #f8f9fa;
             padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            border: 1px solid #eee;
+          }
+
+          .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+          }
+
+          .checkbox-group input {
+            width: auto;
           }
 
           .form-actions {
-            flex-direction: column;
-            gap: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
           }
 
           button {
-            width: 100%;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
           }
-        }
-      `}</style>
+
+          .back-btn {
+            background: #95a5a6;
+            color: white;
+          }
+
+          .back-btn:hover {
+            background: #7f8c8d;
+          }
+
+          .next-btn,
+          .add-btn {
+            background: #3498db;
+            color: white;
+          }
+
+          .next-btn:hover,
+          .add-btn:hover {
+            background: #2980b9;
+          }
+
+          .submit-btn {
+            background: #2ecc71;
+            color: white;
+          }
+
+          .submit-btn:hover {
+            background: #27ae60;
+          }
+
+          .submit-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+          }
+
+          .remove-btn {
+            background: #e74c3c;
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+          }
+
+          .remove-btn:hover {
+            background: #c0392b;
+          }
+
+          @media (max-width: 768px) {
+            .form-container {
+              padding: 1rem;
+            }
+
+            .form-actions {
+              flex-direction: column;
+              gap: 0.5rem;
+            }
+
+            button {
+              width: 100%;
+            }
+          }
+        `}
+      </style>
+</div>
     </div>
   );
 }

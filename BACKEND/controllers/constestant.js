@@ -147,37 +147,52 @@ const createContestant = async (req, res) => {
 const updateContestant = async (req, res) => {
   try {
     await connectToDatabase();
+    console.log(req.body);
 
-    const updateData = { ...req.body };
+    const contestant = await Contestant.findById(req.params.id);
+    if (!contestant) return res.status(404).json({ message: "Contestant not found" });
 
-    if (req.body.lastPromises) {
-      const parsedArray = typeof req.body.lastPromises === 'string'
-        ? req.body.lastPromises.split(',').map(p => p.trim()).filter(p => p.length > 0).map(parseLastPromiseString)
-        : [];
-
-      if (parsedArray.length > 0) {
-        const first = parsedArray[0]; // extract only first parsed result
-        updateData.previousPosition = first.position;
-        updateData.organization = first.organization;
-        updateData.timeServed = first.duration;
+    // Update regular fields except structured ones
+    Object.entries(req.body).forEach(([key, value]) => {
+      if (!['accomplishments', 'promises', 'previousPromises', 'lastPromises'].includes(key)) {
+        contestant[key] = value;
       }
-    }
-
-    if (req.body.promises && typeof req.body.promises === 'string') {
-      updateData.promises = req.body.promises.split(',').map(p => p.trim()).filter(p => p.length > 0);
-    }
-
-    const updated = await Contestant.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
     });
 
-    if (!updated) return res.status(404).json({ message: "Contestant not found" });
+    // Handle promises string
+    if (typeof req.body.promises === 'string') {
+      contestant.promises = req.body.promises
+        .split(',')
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+    }
 
+    // ✅ Transform accomplishments → previousPromises + top-level fields
+    if (Array.isArray(req.body.accomplishments)) {
+      const previousPromises = req.body.accomplishments.map(a => ({
+        promise: a.promise?.trim() || '',
+        fulfilled: Boolean(a.accomplished),
+      })).filter(p => p.promise !== '');
+
+      contestant.previousPromises = previousPromises;
+
+      // Use first item for historical top-level info
+      const first = req.body.accomplishments[0];
+      if (first.previousPosition) contestant.previousPosition = first.previousPosition;
+      if (first.timeServed) contestant.timeServed = first.timeServed;
+      if (first.organization) contestant.organization = first.organization;
+    }
+
+    const updated = await contestant.save();
     res.status(200).json(updated);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Error updating contestant", error: err.message });
   }
 };
+
+
+
 
 const deleteContestant = async (req, res) => {
   try {
