@@ -5,8 +5,9 @@ import VoterDashboard from './voter';
 import ContestantRegistration from './contestantRegistration';
 import RegisterUserForm from './voterRegistration';
 import extractAndValidateToken from './localStorage';
-import AdminDashboard from './adminPage';
+//import AdminDashboard from './adminPage';
 import UserDashboard from './userAccount';
+import AdminDashboard from './admin';
 import GeneralAnalysis from './generalAnalysis';
 import './index.css';
 const isAuthenticated = () => {

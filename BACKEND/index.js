@@ -5,7 +5,7 @@ const path = require('path');
 
 const { connectToDatabase } = require('./config/connectionURI');
 
-const { registerUser, loginUser, getCurrentUser } = require('./controllers/authController');
+const { registerUser, loginUser, getCurrentUser,getAllUsers } = require('./controllers/authController');
 const {authenticateUser}=require('./middleware/authenticator')
 const { getAllContestants, createContestant, getContestantById, updateContestant } = require('./controllers/constestant');
 const {files}=require('./config/imageHandler');
@@ -37,6 +37,7 @@ app.get('/', (req, res) => {
 app.post('/register',registerUser);
 app.post('/login',loginUser)
 app.get('/currentUser', authenticateUser, getCurrentUser);
+app.get('/users',  getAllUsers);
 
 
 // Contestant routes

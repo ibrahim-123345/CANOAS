@@ -113,4 +113,16 @@ module.exports = {
     },
 
    
+getAllUsers: async (req, res) => {
+    try {
+        await connectToDatabase();
+        const users = await User.find().select('-password'); // Exclude password from response
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}
+
+
+
 };

@@ -10,7 +10,6 @@ import {
   faSave, faTasks, faUserPlus, faSun, faMoon
 } from '@fortawesome/free-solid-svg-icons';
 
-// Add icons to library
 library.add(
   faUser, faFlag, faBriefcase, faIdCard, faUpload, 
   faBullhorn, faTimes, faPlus, faUserCheck, faIdBadge, 
@@ -30,16 +29,10 @@ const ContestantRegistration = () => {
     image: null,
     position: '',
   });
-
   const [accomplishments, setAccomplishments] = useState([
-    { promise: '', accomplished: false, details: '', 
-      previousPosition: '', timeServed: '', organization: '' }
+    { promise: '', accomplished: false, details: '', previousPosition: '', timeServed: '', organization: '' }
   ]);
-
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('darkMode') === 'true';
-  });
-
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
   const [previewImage, setPreviewImage] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -55,8 +48,211 @@ const ContestantRegistration = () => {
     'Minister of Information',
   ];
 
+  // Styles
+  const styles = {
+    container: {
+      minHeight: '100vh',
+      padding: '2rem',
+      backgroundColor: darkMode ? '#121212' : '#f5f7fa',
+      color: darkMode ? '#ffffff' : '#333333',
+      transition: 'all 0.3s ease'
+    },
+    innerContainer: {
+      maxWidth: '1200px',
+      margin: '0 auto'
+    },
+    header: {
+      textAlign: 'center',
+      marginBottom: '2rem'
+    },
+    title: {
+      fontSize: '2rem',
+      fontWeight: '700',
+      marginBottom: '0.5rem',
+      color: darkMode ? '#ffffff' : '#1a365d'
+    },
+    subtitle: {
+      fontSize: '1rem',
+      opacity: '0.8',
+      fontWeight: '300'
+    },
+    tabsContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: '2rem',
+      gap: '1rem'
+    },
+    tabButton: {
+      padding: '0.75rem 1.5rem',
+      borderRadius: '0.5rem',
+      fontWeight: '600',
+      transition: 'all 0.2s ease',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      border: 'none',
+      cursor: 'pointer'
+    },
+    activeTab: {
+      backgroundColor: darkMode ? '#3b82f6' : '#2563eb',
+      color: 'white'
+    },
+    inactiveTab: {
+      backgroundColor: darkMode ? '#1f2937' : '#e5e7eb',
+      color: darkMode ? '#e5e7eb' : '#374151'
+    },
+    card: {
+      borderRadius: '0.75rem',
+      padding: '2rem',
+      backgroundColor: darkMode ? '#1e293b' : '#ffffff',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+      marginBottom: '2rem'
+    },
+    formGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '1.5rem',
+      marginBottom: '1.5rem'
+    },
+    inputGroup: {
+      marginBottom: '1.25rem'
+    },
+    label: {
+      display: 'block',
+      marginBottom: '0.5rem',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      color: darkMode ? '#e5e7eb' : '#4b5563'
+    },
+    input: {
+      width: '100%',
+      padding: '0.75rem',
+      borderRadius: '0.375rem',
+      border: `1px solid ${darkMode ? '#374151' : '#d1d5db'}`,
+      backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+      color: darkMode ? '#f3f4f6' : '#111827',
+      fontSize: '0.95rem',
+      ':focus': {
+        outline: 'none',
+        borderColor: darkMode ? '#60a5fa' : '#3b82f6',
+        boxShadow: `0 0 0 3px ${darkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'}`
+      }
+    },
+    textarea: {
+      minHeight: '100px',
+      resize: 'vertical'
+    },
+    uploadButton: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '0.5rem 1rem',
+      borderRadius: '0.375rem',
+      border: `1px solid ${darkMode ? '#374151' : '#d1d5db'}`,
+      backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      marginRight: '1rem'
+    },
+    previewImage: {
+      width: '80px',
+      height: '80px',
+      borderRadius: '50%',
+      objectFit: 'cover',
+      border: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`
+    },
+    addButton: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '0.5rem 1rem',
+      borderRadius: '0.375rem',
+      backgroundColor: darkMode ? '#374151' : '#e5e7eb',
+      color: darkMode ? '#f3f4f6' : '#111827',
+      cursor: 'pointer',
+      border: 'none',
+      fontSize: '0.875rem',
+      marginBottom: '1rem'
+    },
+    removeButton: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '2.5rem',
+      height: '2.5rem',
+      borderRadius: '0.375rem',
+      backgroundColor: 'transparent',
+      color: '#ef4444',
+      cursor: 'pointer',
+      border: 'none'
+    },
+    submitButton: {
+      width: '100%',
+      padding: '0.75rem',
+      borderRadius: '0.375rem',
+      backgroundColor: darkMode ? '#3b82f6' : '#2563eb',
+      color: 'white',
+      fontWeight: '600',
+      fontSize: '1rem',
+      border: 'none',
+      cursor: 'pointer',
+      marginTop: '1rem'
+    },
+    message: {
+      padding: '1rem',
+      borderRadius: '0.375rem',
+      marginBottom: '1.5rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem'
+    },
+    successMessage: {
+      backgroundColor: darkMode ? '#065f46' : '#d1fae5',
+      color: darkMode ? '#d1fae5' : '#065f46'
+    },
+    errorMessage: {
+      backgroundColor: darkMode ? '#7f1d1d' : '#fee2e2',
+      color: darkMode ? '#fecaca' : '#b91c1c'
+    },
+    darkModeToggle: {
+      position: 'fixed',
+      top: '1rem',
+      right: '1rem',
+      width: '3rem',
+      height: '3rem',
+      borderRadius: '50%',
+      backgroundColor: darkMode ? '#3b82f6' : '#1f2937',
+      color: 'white',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      border: 'none',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+    },
+    accomplishmentCard: {
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+      backgroundColor: darkMode ? '#1f2937' : '#f9fafb',
+      marginBottom: '1.5rem'
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '1rem',
+      marginTop: '1.5rem'
+    },
+    saveButton: {
+      padding: '0.75rem 1.5rem',
+      borderRadius: '0.375rem',
+      backgroundColor: darkMode ? '#10b981' : '#059669',
+      color: 'white',
+      fontWeight: '600',
+      border: 'none',
+      cursor: 'pointer'
+    }
+  };
+
   useEffect(() => {
-    document.body.style.background = darkMode ? '#121212' : '#f5f7fa';
+    document.body.style.backgroundColor = darkMode ? '#121212' : '#f5f7fa';
     document.body.style.color = darkMode ? '#ffffff' : '#333333';
     localStorage.setItem('darkMode', darkMode);
     
@@ -147,9 +343,7 @@ const ContestantRegistration = () => {
       const response = await axios.post(
         'http://localhost:8000/contestants',
         formDataToSubmit,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        }
+        { headers: { 'Content-Type': 'multipart/form-data' } }
       );
 
       await axios.post('http://localhost:8000/notifications', {
@@ -169,7 +363,6 @@ const ContestantRegistration = () => {
       });
       setPreviewImage(null);
       
-      // Refresh contestants list
       const contestantsResponse = await axios.get('http://localhost:8000/contestants');
       setContestants(contestantsResponse.data);
     } catch (error) {
@@ -238,21 +431,21 @@ const ContestantRegistration = () => {
   };
 
   return (
-    <div className={`min-h-screen py-12 px-4 sm:px-6 lg:px-8 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-800'}`}>
-      <div className="max-w-6xl mx-auto">
+    <div style={styles.container}>
+      <div style={styles.innerContainer}>
         {/* Dark Mode Toggle */}
         <button
           onClick={() => setDarkMode(!darkMode)}
-          className={`fixed top-4 right-4 p-3 rounded-full ${darkMode ? 'bg-blue-600' : 'bg-gray-800'} text-white shadow-lg hover:scale-110 transition-transform`}
+          style={styles.darkModeToggle}
           aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           <FontAwesomeIcon icon={darkMode ? faSun : faMoon} />
         </button>
 
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold mb-3">Contestant Management Portal</h1>
-          <p className="text-xl opacity-80">
+        <div style={styles.header}>
+          <h1 style={styles.title}>Contestant Management Portal</h1>
+          <p style={styles.subtitle}>
             {activeTab === 'registration'
               ? 'Register new candidates for upcoming elections'
               : 'Track and update candidate accomplishments'}
@@ -260,160 +453,139 @@ const ContestantRegistration = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex justify-center mb-8 gap-4">
+        <div style={styles.tabsContainer}>
           <button
-            className={`px-6 py-3 rounded-lg font-semibold transition-all ${activeTab === 'registration' 
-              ? `${darkMode ? 'bg-blue-600' : 'bg-blue-500'} text-white shadow-md` 
-              : `${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} text-gray-700`}`}
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'registration' ? styles.activeTab : styles.inactiveTab)
+            }}
             onClick={() => setActiveTab('registration')}
           >
-            <FontAwesomeIcon icon="user-plus" className="mr-2" />
+            <FontAwesomeIcon icon="user-plus" />
             Candidate Registration
           </button>
           <button
-            className={`px-6 py-3 rounded-lg font-semibold transition-all ${activeTab === 'accomplishments' 
-              ? `${darkMode ? 'bg-blue-600' : 'bg-blue-500'} text-white shadow-md` 
-              : `${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} text-gray-700`}`}
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'accomplishments' ? styles.activeTab : styles.inactiveTab)
+            }}
             onClick={() => setActiveTab('accomplishments')}
           >
-            <FontAwesomeIcon icon="tasks" className="mr-2" />
+            <FontAwesomeIcon icon="tasks" />
             Track Accomplishments
           </button>
         </div>
 
         {/* Messages */}
         {errorMessage && (
-          <div className={`p-4 mb-6 rounded-lg ${darkMode ? 'bg-red-900' : 'bg-red-100'} ${darkMode ? 'text-red-100' : 'text-red-700'}`}>
-            <FontAwesomeIcon icon="exclamation-circle" className="mr-2" />
+          <div style={{ ...styles.message, ...styles.errorMessage }}>
+            <FontAwesomeIcon icon="exclamation-circle" />
             {errorMessage}
           </div>
         )}
         {successMessage && (
-          <div className={`p-4 mb-6 rounded-lg ${darkMode ? 'bg-green-900' : 'bg-green-100'} ${darkMode ? 'text-green-100' : 'text-green-700'}`}>
-            <FontAwesomeIcon icon="check-circle" className="mr-2" />
+          <div style={{ ...styles.message, ...styles.successMessage }}>
+            <FontAwesomeIcon icon="check-circle" />
             {successMessage}
           </div>
         )}
 
         {/* Forms */}
-        <div className={`rounded-2xl shadow-xl overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        <div style={styles.card}>
           {activeTab === 'registration' ? (
-            <form onSubmit={handleSubmitRegistration} className="p-8 space-y-6">
-              <div className="grid md:grid-cols-2 gap-8">
+            <form onSubmit={handleSubmitRegistration}>
+              <div style={styles.formGrid}>
                 {/* Left Column */}
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Full Name</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FontAwesomeIcon icon="user" className="text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        className={`pl-10 w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                        placeholder="Enter candidate's full name"
-                        required
-                      />
-                    </div>
+                <div>
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Full Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      style={styles.input}
+                      placeholder="Enter candidate's full name"
+                      required
+                    />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Political Party</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FontAwesomeIcon icon="flag" className="text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="party"
-                        value={formData.party}
-                        onChange={handleChange}
-                        className={`pl-10 w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                        placeholder="Enter party name"
-                        required
-                      />
-                    </div>
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Political Party</label>
+                    <input
+                      type="text"
+                      name="party"
+                      value={formData.party}
+                      onChange={handleChange}
+                      style={styles.input}
+                      placeholder="Enter party name"
+                      required
+                    />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Position</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FontAwesomeIcon icon="briefcase" className="text-gray-400" />
-                      </div>
-                      <select
-                        name="position"
-                        value={formData.position}
-                        onChange={handleChange}
-                        className={`pl-10 w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                        required
-                      >
-                        <option value="">Select a position</option>
-                        {positions.map((pos, i) => (
-                          <option key={i} value={pos}>{pos}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Position</label>
+                    <select
+                      name="position"
+                      value={formData.position}
+                      onChange={handleChange}
+                      style={styles.input}
+                      required
+                    >
+                      <option value="">Select a position</option>
+                      {positions.map((pos, i) => (
+                        <option key={i} value={pos}>{pos}</option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">NIDA Number</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FontAwesomeIcon icon="id-card" className="text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="nidaNumber"
-                        value={formData.nidaNumber}
-                        onChange={handleChange}
-                        className={`pl-10 w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                        placeholder="Enter NIDA identification number"
-                        required
-                      />
-                    </div>
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>NIDA Number</label>
+                    <input
+                      type="text"
+                      name="nidaNumber"
+                      value={formData.nidaNumber}
+                      onChange={handleChange}
+                      style={styles.input}
+                      placeholder="Enter NIDA identification number"
+                      required
+                    />
                   </div>
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Biography</label>
+                <div>
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Biography</label>
                     <textarea
                       name="bio"
                       value={formData.bio}
                       onChange={handleChange}
-                      className={`w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                      rows="5"
+                      style={{ ...styles.input, ...styles.textarea }}
                       placeholder="Tell us about the candidate's background and qualifications..."
                       required
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Profile Image</label>
-                    <div className="flex items-center">
-                      <label className={`inline-flex items-center px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' : 'bg-white border-gray-300 hover:bg-gray-50'} cursor-pointer transition`}>
-                        <FontAwesomeIcon icon="upload" className="mr-2" />
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Profile Image</label>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <label style={styles.uploadButton}>
+                        <FontAwesomeIcon icon="upload" style={{ marginRight: '0.5rem' }} />
                         Upload Image
                         <input
                           type="file"
                           accept="image/*"
                           onChange={handleImageChange}
-                          className="sr-only"
+                          style={{ display: 'none' }}
                         />
                       </label>
                       {previewImage && (
-                        <div className="ml-4">
-                          <img 
-                            src={previewImage} 
-                            alt="Candidate preview" 
-                            className="h-16 w-16 rounded-full object-cover border-2 border-white shadow" 
-                          />
-                        </div>
+                        <img 
+                          src={previewImage} 
+                          alt="Candidate preview" 
+                          style={styles.previewImage} 
+                        />
                       )}
                     </div>
                   </div>
@@ -421,81 +593,64 @@ const ContestantRegistration = () => {
               </div>
 
               {/* Campaign Promises */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Campaign Promises</label>
-                <div className="space-y-3">
-                  {formData.promises.map((promise, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-grow">
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FontAwesomeIcon icon="bullhorn" className="text-gray-400" />
-                          </div>
-                          <input
-                            type="text"
-                            value={promise}
-                            onChange={(e) => handlePromiseChange(index, e.target.value)}
-                            className={`pl-10 w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                            placeholder={`Promise #${index + 1}`}
-                            required
-                          />
-                        </div>
-                      </div>
-                      {formData.promises.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removePromiseField(index)}
-                          className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                        >
-                          <FontAwesomeIcon icon="times" className="text-red-500" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Campaign Promises</label>
+                {formData.promises.map((promise, index) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={promise}
+                      onChange={(e) => handlePromiseChange(index, e.target.value)}
+                      style={styles.input}
+                      placeholder={`Promise #${index + 1}`}
+                      required
+                    />
+                    {formData.promises.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removePromiseField(index)}
+                        style={styles.removeButton}
+                      >
+                        <FontAwesomeIcon icon="times" />
+                      </button>
+                    )}
+                  </div>
+                ))}
                 <button
                   type="button"
                   onClick={addPromiseField}
-                  className={`mt-3 inline-flex items-center px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} transition`}
+                  style={styles.addButton}
                 >
-                  <FontAwesomeIcon icon="plus" className="mr-2" />
+                  <FontAwesomeIcon icon="plus" style={{ marginRight: '0.5rem' }} />
                   Add Another Promise
                 </button>
               </div>
 
               {/* Submit Button */}
-              <div className="pt-6">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`w-full flex justify-center items-center py-3 px-4 rounded-lg text-lg font-medium text-white ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} transition ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {isLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <FontAwesomeIcon icon="user-check" className="mr-2" />
-                      Register Candidate
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                style={styles.submitButton}
+              >
+                {isLoading ? (
+                  'Processing...'
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon="user-check" style={{ marginRight: '0.5rem' }} />
+                    Register Candidate
+                  </>
+                )}
+              </button>
             </form>
           ) : (
-            <form onSubmit={handleSubmitAccomplishments} className="p-8 space-y-6">
+            <form onSubmit={handleSubmitAccomplishments}>
               {/* Contestant Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-1">Select Candidate</label>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Select Candidate</label>
                 <select
                   value={selectedContestant}
                   onChange={handleContestantSelect}
-                  className={`w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                  style={styles.input}
                   required
                 >
                   <option value="">Select a candidate</option>
@@ -509,27 +664,26 @@ const ContestantRegistration = () => {
 
               {/* Accomplishments */}
               {accomplishments.map((acc, index) => (
-                <div key={index} className={`p-6 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* Promise Info */}
+                <div key={index} style={styles.accomplishmentCard}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Promise</label>
+                      <label style={styles.label}>Promise</label>
                       <input
                         type="text"
                         placeholder="Enter the original promise"
                         value={acc.promise}
                         onChange={(e) => handleAccomplishmentChange(index, 'promise', e.target.value)}
-                        className={`w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={styles.input}
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Status</label>
+                      <label style={styles.label}>Status</label>
                       <select
                         value={acc.accomplished}
                         onChange={(e) => handleAccomplishmentChange(index, 'accomplished', e.target.value)}
-                        className={`w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={styles.input}
                         required
                       >
                         <option value="true">Accomplished</option>
@@ -538,49 +692,46 @@ const ContestantRegistration = () => {
                     </div>
                   </div>
 
-                  {/* Details */}
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium mb-1">Details</label>
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Details</label>
                     <textarea
                       placeholder="Provide details about the accomplishment or reason for not fulfilling..."
                       value={acc.details}
                       onChange={(e) => handleAccomplishmentChange(index, 'details', e.target.value)}
-                      className={`w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                      rows="3"
+                      style={{ ...styles.input, ...styles.textarea }}
                       required
                     />
                   </div>
 
-                  {/* Previous Experience */}
-                  <div className="grid md:grid-cols-3 gap-4 mt-4">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Previous Position</label>
+                      <label style={styles.label}>Previous Position</label>
                       <input
                         type="text"
                         placeholder="E.g. Member of Parliament"
                         value={acc.previousPosition}
                         onChange={(e) => handleAccomplishmentChange(index, 'previousPosition', e.target.value)}
-                        className={`w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={styles.input}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Organization</label>
+                      <label style={styles.label}>Organization</label>
                       <input
                         type="text"
                         placeholder="E.g. Tanzanian Parliament"
                         value={acc.organization}
                         onChange={(e) => handleAccomplishmentChange(index, 'organization', e.target.value)}
-                        className={`w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={styles.input}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Time Served</label>
+                      <label style={styles.label}>Time Served</label>
                       <input
                         type="text"
                         placeholder="E.g. 2015-2020"
                         value={acc.timeServed}
                         onChange={(e) => handleAccomplishmentChange(index, 'timeServed', e.target.value)}
-                        className={`w-full p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                        style={styles.input}
                       />
                     </div>
                   </div>
@@ -589,41 +740,35 @@ const ContestantRegistration = () => {
                     <button
                       type="button"
                       onClick={() => removeAccomplishmentField(index)}
-                      className={`mt-4 inline-flex items-center px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-200 hover:bg-gray-300'} transition`}
+                      style={{ ...styles.addButton, marginTop: '1rem' }}
                     >
-                      <FontAwesomeIcon icon="trash" className="mr-2" />
+                      <FontAwesomeIcon icon="trash" style={{ marginRight: '0.5rem' }} />
                       Remove This Accomplishment
                     </button>
                   )}
                 </div>
               ))}
 
-              <div className="flex flex-wrap gap-4">
+              <div style={styles.buttonGroup}>
                 <button
                   type="button"
                   onClick={addAccomplishmentField}
-                  className={`inline-flex items-center px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} transition`}
+                  style={styles.addButton}
                 >
-                  <FontAwesomeIcon icon="plus" className="mr-2" />
+                  <FontAwesomeIcon icon="plus" style={{ marginRight: '0.5rem' }} />
                   Add Another Accomplishment
                 </button>
 
                 <button
                   type="submit"
                   disabled={isLoading || !selectedContestant}
-                  className={`inline-flex items-center px-6 py-3 rounded-lg text-white ${darkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} transition ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  style={styles.saveButton}
                 >
                   {isLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Updating...
-                    </>
+                    'Updating...'
                   ) : (
                     <>
-                      <FontAwesomeIcon icon="save" className="mr-2" />
+                      <FontAwesomeIcon icon="save" style={{ marginRight: '0.5rem' }} />
                       Update Accomplishments
                     </>
                   )}
