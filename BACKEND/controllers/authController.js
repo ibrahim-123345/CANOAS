@@ -12,6 +12,7 @@ module.exports = {
     registerUser: async (req, res) => {
         try {
             const { fullName,NIDA, email, password } = req.body;
+            console.log(req.body)
 
             // Check if user already exists
             await connectToDatabase();
@@ -100,7 +101,8 @@ module.exports = {
     deleteUser: async (req, res) => {
         try {
             await connectToDatabase()
-            const user = await User.findByIdAndDelete(req.user.id);
+            const user = await User.findByIdAndDelete(req.params.id);
+            console.log(user)
 
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
@@ -122,6 +124,7 @@ getAllUsers: async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 }
+
 
 
 

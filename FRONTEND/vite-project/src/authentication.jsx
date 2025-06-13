@@ -239,7 +239,7 @@ const AuthPage = () => {
         <div style={styles.registerLink}>
           Don't have an account?{" "}
           <a 
-            href="/Registration" 
+            href="/registration" 
             style={styles.registerAnchor}
           >
             Register

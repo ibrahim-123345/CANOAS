@@ -8,13 +8,11 @@ import {
   FaVoteYea,
   FaChartBar,
   FaTrash,
-  FaEdit,
-  FaEye,
   FaSignOutAlt,
   FaPlus,
   FaSearch,
-  FaChevronDown,
-  FaChevronUp
+  FaEllipsisH,
+  FaEdit  // Add this line
 } from 'react-icons/fa';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -28,17 +26,19 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedRows, setExpandedRows] = useState({});
   const [stats, setStats] = useState({
     totalContestants: 0,
     totalVoters: 0,
     totalVotes: 0,
     recentActivity: []
   });
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [allActivities, setAllActivities] = useState([]);
 
   useEffect(() => {
     fetchData();
     fetchStats();
+    fetchAllActivities();
   }, [activeTab]);
 
   const fetchData = async () => {
@@ -81,6 +81,15 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchAllActivities = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/notifications');
+      setAllActivities(res.data);
+    } catch (err) {
+      console.error('Error fetching all activities:', err);
+    }
+  };
+
   const handleDelete = (id, type) => {
     confirmAlert({
       title: 'Confirm Deletion',
@@ -95,7 +104,7 @@ const AdminDashboard = () => {
               if (type === 'contestant') {
                 endpoint = `http://localhost:8000/contestants/${id}`;
               } else if (type === 'voter') {
-                endpoint = `http://localhost:8000/users/${id}`|| '0';
+                endpoint = `http://localhost:8000/delete/${id}`;
               } else if (type === 'vote') {
                 endpoint = `http://localhost:8000/vote/${id}`;
               }
@@ -117,16 +126,10 @@ const AdminDashboard = () => {
     });
   };
 
-  const toggleRow = (id) => {
-    setExpandedRows(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('authData');
+    window.location.reload();
     navigate('/login');
   };
 
@@ -148,7 +151,7 @@ const AdminDashboard = () => {
           item.position.toLowerCase().includes(lowerSearch))
       } else if (activeTab === 'voters') {
         return (
-          item.name.toLowerCase().includes(lowerSearch) ||
+          item.fullName.toLowerCase().includes(lowerSearch) ||
           item.email.toLowerCase().includes(lowerSearch))
       } else if (activeTab === 'votes') {
         return (
@@ -250,58 +253,28 @@ const AdminDashboard = () => {
               </thead>
               <tbody>
                 {filteredData().map(contestant => (
-                  <React.Fragment key={contestant._id}>
-                    <tr>
-                      <td>
-                        <div className="user-info">
-                          <img 
-                            src={contestant.profileImage || 'https://via.placeholder.com/40'} 
-                            alt={contestant.name}
-                          />
-                          {contestant.name}
-                        </div>
-                      </td>
-                      <td>{contestant.position}</td>
-                      <td>{contestant.party}</td>
-                      <td className="actions">
-                        <Link to={`/edit-contestant/${contestant._id}`} className="action-btn edit">
-                          <FaEdit />
-                        </Link>
-                        <button 
-                          className="action-btn delete"
-                          onClick={() => handleDelete(contestant._id, 'contestant')}
-                        >
-                          <FaTrash />
-                        </button>
-                        <button 
-                          className="action-btn view"
-                          onClick={() => toggleRow(contestant._id)}
-                        >
-                          {expandedRows[contestant._id] ? <FaChevronUp /> : <FaChevronDown />}
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedRows[contestant._id] && (
-                      <tr className="expanded-row">
-                        <td colSpan="4">
-                          <div className="expanded-content">
-                            <div>
-                              <h4>Bio</h4>
-                              <p>{contestant.bio || 'No bio available'}</p>
-                            </div>
-                            <div>
-                              <h4>Promises</h4>
-                              <ul>
-                                {contestant.promises?.map((promise, i) => (
-                                  <li key={i}>{promise}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <tr key={contestant._id}>
+                    <td>
+                      <div className="user-info">
+                        <img 
+                          src={contestant.profileImage || 'https://via.placeholder.com/40'} 
+                          alt={contestant.name}
+                        />
+                        {contestant.name}
+                      </div>
+                    </td>
+                    <td>{contestant.position}</td>
+                    <td>{contestant.party}</td>
+                    <td className="actions">
+                     
+                      <button 
+                        className="action-btn delete"
+                        onClick={() => handleDelete(contestant._id, 'contestant')}
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -319,45 +292,27 @@ const AdminDashboard = () => {
               </thead>
               <tbody>
                 {filteredData().map(voter => (
-                  <React.Fragment key={voter._id}>
-                    <tr>
-                      <td>
-                        <div className="user-info">
-                          <img 
-                            src={voter.profileImage || 'http://localhost:8000/uploads/img_avatar.png'} 
-                            alt={voter.name}
-                          />
-                          {voter.fullName}
-                        </div>
-                      </td>
-                      <td>{voter.email}</td>
-                      <td>{new Date(voter.createdAt).toLocaleDateString()}</td>
-                      <td className="actions">
-                        <button 
-                          className="action-btn delete"
-                          onClick={() => handleDelete(voter._id, 'voter')}
-                        >
-                          <FaTrash />
-                        </button>
-                        <button 
-                          className="action-btn view"
-                          onClick={() => toggleRow(voter._id)}
-                        >
-                          {expandedRows[voter._id] ? <FaChevronUp /> : <FaChevronDown />}
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedRows[voter._id] && (
-                      <tr className="expanded-row">
-                        <td colSpan="4">
-                          <div className="expanded-content">
-                            <p><strong>ID:</strong> {voter._id}</p>
-                            <p><strong>Last Login:</strong> {voter.lastLogin ? new Date(voter.lastLogin).toLocaleString() : 'Never'}</p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <tr key={voter._id}>
+                    <td>
+                      <div className="user-info">
+                        <img 
+                          src={voter.profileImage || 'http://localhost:8000/uploads/img_avatar.png'} 
+                          alt={voter.fullName}
+                        />
+                        {voter.fullName}
+                      </div>
+                    </td>
+                    <td>{voter.email}</td>
+                    <td>{new Date(voter.createdAt).toLocaleDateString()}</td>
+                    <td className="actions">
+                      <button 
+                        className="action-btn delete"
+                        onClick={() => handleDelete(voter._id, 'voter')}
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -376,64 +331,44 @@ const AdminDashboard = () => {
               </thead>
               <tbody>
                 {filteredData().map(vote => (
-                  <React.Fragment key={vote._id}>
-                    <tr>
-                      <td>
-                        {vote.contestant ? (
-                          <div className="user-info">
-                            <img 
-                              src={vote.contestant.profileImage || 'https://via.placeholder.com/40'} 
-                              alt={vote.contestant.name}
-                            />
-                            {vote.contestant.name}
-                          </div>
-                        ) : 'Deleted Contestant'}
-                      </td>
-                      <td>
-                        {vote.voter ? (
-                          <div className="user-info">
-                            <img 
-                              src={vote.voter.profileImage || 'https://via.placeholder.com/40'} 
-                              alt={vote.voter.name}
-                            />
-                            {vote.voter.name}
-                          </div>
-                        ) : 'Deleted Voter'}
-                      </td>
-                      <td>
-                        <span className={`vote-tag ${vote.voteValue}`}>
-                          {vote.voteValue.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td>{new Date(vote.createdAt).toLocaleDateString()}</td>
-                      <td className="actions">
-                        <button 
-                          className="action-btn delete"
-                          onClick={() => handleDelete(vote._id, 'vote')}
-                        >
-                          <FaTrash />
-                        </button>
-                        <button 
-                          className="action-btn view"
-                          onClick={() => toggleRow(vote._id)}
-                        >
-                          {expandedRows[vote._id] ? <FaChevronUp /> : <FaChevronDown />}
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedRows[vote._id] && (
-                      <tr className="expanded-row">
-                        <td colSpan="5">
-                          <div className="expanded-content">
-                            <p><strong>Percentage:</strong> {vote.percentage}%</p>
-                            {vote.comment && (
-                              <p><strong>Comment:</strong> {vote.comment}</p>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <tr key={vote._id}>
+                    <td>
+                      {vote.contestant ? (
+                        <div className="user-info">
+                          <img 
+                            src={vote.contestant.profileImage || 'https://via.placeholder.com/40'} 
+                            alt={vote.contestant.name}
+                          />
+                          {vote.contestant.name}
+                        </div>
+                      ) : 'Deleted Contestant'}
+                    </td>
+                    <td>
+                      {vote.voter ? (
+                        <div className="user-info">
+                          <img 
+                            src={vote.voter.profileImage || 'https://via.placeholder.com/40'} 
+                            alt={vote.voter.name}
+                          />
+                          {vote.voter.name}
+                        </div>
+                      ) : 'Deleted Voter'}
+                    </td>
+                    <td>
+                      <span className={`vote-tag ${vote.voteValue}`}>
+                        {vote.voteValue.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td>{new Date(vote.createdAt).toLocaleDateString()}</td>
+                    <td className="actions">
+                      <button 
+                        className="action-btn delete"
+                        onClick={() => handleDelete(vote._id, 'vote')}
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -441,9 +376,17 @@ const AdminDashboard = () => {
         </div>
 
         <div className="recent-activity">
-          <h2>Recent Activity</h2>
+          <div className="activity-header">
+            <h2>Recent Activity</h2>
+            <button 
+              className="view-more-btn"
+              onClick={() => setShowActivityModal(true)}
+            >
+              <FaEllipsisH />
+            </button>
+          </div>
           <ul>
-            {stats.recentActivity.map(activity => (
+            {stats.recentActivity.slice(0, 3).map(activity => (
               <li key={activity._id}>
                 <p>{activity.message}</p>
                 <span>{new Date(activity.createdAt).toLocaleString()}</span>
@@ -452,6 +395,32 @@ const AdminDashboard = () => {
           </ul>
         </div>
       </div>
+
+      {showActivityModal && (
+        <div className="activity-modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>All Activities</h2>
+              <button 
+                className="close-btn"
+                onClick={() => setShowActivityModal(false)}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="modal-body">
+              <ul>
+                {allActivities.map(activity => (
+                  <li key={activity._id}>
+                    <p>{activity.message}</p>
+                    <span>{new Date(activity.createdAt).toLocaleString()}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .admin-dashboard {
@@ -677,40 +646,6 @@ const AdminDashboard = () => {
           color: #b91c1c;
         }
 
-        .action-btn.view {
-          background: #dbeafe;
-          color: #1d4ed8;
-        }
-
-        .expanded-row {
-          background: #f8f9fa;
-        }
-
-        .expanded-content {
-          padding: 15px;
-        }
-
-        .expanded-content h4 {
-          margin: 0 0 10px 0;
-          font-size: 0.95rem;
-        }
-
-        .expanded-content p {
-          margin: 0 0 15px 0;
-          font-size: 0.9rem;
-          color: #4b5563;
-        }
-
-        .expanded-content ul {
-          margin: 0;
-          padding-left: 20px;
-        }
-
-        .expanded-content li {
-          margin-bottom: 5px;
-          font-size: 0.9rem;
-        }
-
         .vote-tag {
           display: inline-block;
           padding: 5px 10px;
@@ -753,10 +688,25 @@ const AdminDashboard = () => {
           box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
+        .activity-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
         .recent-activity h2 {
-          margin: 0 0 20px 0;
+          margin: 0;
           font-size: 1.2rem;
           color: #2c3e50;
+        }
+
+        .view-more-btn {
+          background: none;
+          border: none;
+          color: #7f8c8d;
+          cursor: pointer;
+          font-size: 1rem;
         }
 
         .recent-activity ul {
@@ -780,6 +730,84 @@ const AdminDashboard = () => {
         }
 
         .recent-activity span {
+          font-size: 0.8rem;
+          color: #7f8c8d;
+        }
+
+        .activity-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 8px;
+          width: 80%;
+          max-width: 800px;
+          max-height: 80vh;
+          overflow-y: auto;
+          box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px;
+          border-bottom: 1px solid #eee;
+          position: sticky;
+          top: 0;
+          background: white;
+          z-index: 10;
+        }
+
+        .modal-header h2 {
+          margin: 0;
+          font-size: 1.3rem;
+          color: #2c3e50;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #7f8c8d;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .modal-body ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .modal-body li {
+          padding: 15px 0;
+          border-bottom: 1px solid #eee;
+        }
+
+        .modal-body li:last-child {
+          border-bottom: none;
+        }
+
+        .modal-body p {
+          margin: 0 0 5px 0;
+          font-size: 0.95rem;
+        }
+
+        .modal-body span {
           font-size: 0.8rem;
           color: #7f8c8d;
         }
@@ -815,6 +843,10 @@ const AdminDashboard = () => {
           .add-btn {
             width: 100%;
             justify-content: center;
+          }
+
+          .modal-content {
+            width: 95%;
           }
         }
       `}</style>

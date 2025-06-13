@@ -5,9 +5,9 @@ const path = require('path');
 
 const { connectToDatabase } = require('./config/connectionURI');
 
-const { registerUser, loginUser, getCurrentUser,getAllUsers } = require('./controllers/authController');
+const { registerUser,deleteUser, loginUser, getCurrentUser,getAllUsers } = require('./controllers/authController');
 const {authenticateUser}=require('./middleware/authenticator')
-const { getAllContestants, createContestant, getContestantById, updateContestant } = require('./controllers/constestant');
+const { getAllContestants, createContestant, getContestantById, updateContestant,deleteContestant } = require('./controllers/constestant');
 const {files}=require('./config/imageHandler');
 const {getVotes,castVote,deleteVote,getVotePercentagesByCandidateId, getAverageVoteByUserId,getAverageVoteByCandidateId, getUserAverageVoteOnPosition,getUserVote}=require("./controllers/vote")
 const {getNotifications,createNotification,markAsRead,deleteNotification}  = require('./controllers/notification');
@@ -38,6 +38,7 @@ app.post('/register',registerUser);
 app.post('/login',loginUser)
 app.get('/currentUser', authenticateUser, getCurrentUser);
 app.get('/users',  getAllUsers);
+app.delete('/delete/:id', deleteUser); // Delete user by ID
 
 
 // Contestant routes
@@ -45,6 +46,7 @@ app.get('/contestants', getAllContestants);
 app.post('/contestants', files.single('profileImage'), createContestant);
 app.get('/contestants/:id', getContestantById);
 app.patch('/contestants/:id', updateContestant);
+app.delete('/contestants/:id', deleteContestant);
 
 
 app.post('/vote', castVote);

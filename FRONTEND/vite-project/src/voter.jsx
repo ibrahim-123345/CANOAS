@@ -233,6 +233,8 @@ const VoterDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('authData');
+        window.location.reload();
+
     navigate('/login');
   };
 
@@ -319,9 +321,9 @@ const VoterDashboard = () => {
             )}
             
             {isAdmin && (
-              <Link to="/register-contestant" className="nav-link">
+              <Link to="/admin" className="nav-link">
                 <FaUserCog className="nav-icon" /> 
-                <span>Register Contestant</span>
+                <span>Admin Panel</span>
               </Link>
             )}
           </nav>

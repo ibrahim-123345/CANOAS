@@ -280,12 +280,7 @@ const GeneralAnalysis = () => {
               </Link>
             )}
             
-            {isAdmin && (
-              <Link to="/register-contestant" className="nav-link">
-                <FaUserCog className="nav-icon" /> 
-                <span>Register Contestant</span>
-              </Link>
-            )}
+           
           </nav>
           <button onClick={handleLogout} className="logout-btn">
             <FaSignOutAlt className="logout-icon" /> 
